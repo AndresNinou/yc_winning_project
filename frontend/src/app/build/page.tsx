@@ -142,9 +142,14 @@ function BuilderScreen({ prompt, projectName }: { prompt: string; projectName: s
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
 
-  // Chat state
+  // Chat state - Initialize with user prompt and Claude's greeting
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'user', text: prompt || 'Build an MCP', ts: Date.now() },
+    { 
+      role: 'assistant', 
+      text: `Hi! I'm Claude, and I'm here to help you build an excellent MCP (Model Context Protocol) tool. I see you want to: "${prompt}"\n\nLet me ask a few questions to understand your requirements better so I can create exactly what you need. What specific functionality do you envision for this MCP tool?`, 
+      ts: Date.now() + 100 
+    }
   ])
   const [chatInput, setChatInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -187,8 +192,8 @@ function BuilderScreen({ prompt, projectName }: { prompt: string; projectName: s
     "Are there any specific error handling requirements?"
   ]
 
-  // Send chat message
-  function sendMessage() {
+  // Send chat message to real Claude
+  async function sendMessage() {
     if (!chatInput.trim() || isTyping) return
     
     const userMessage: ChatMessage = {
@@ -198,33 +203,130 @@ function BuilderScreen({ prompt, projectName }: { prompt: string; projectName: s
     }
     
     setMessages(prev => [...prev, userMessage])
+    const currentInput = chatInput
     setChatInput('')
     setIsTyping(true)
     
-    // Simulate AI response
-    setTimeout(() => {
-      const currentQuestionIndex = Math.floor(messages.length / 2)
-      let aiResponse = ''
-      
-      if (currentQuestionIndex < aiQuestions.length) {
-        aiResponse = aiQuestions[currentQuestionIndex]
-      } else if (chatInput.toLowerCase().includes('yes') || chatInput.toLowerCase().includes('build')) {
-        aiResponse = "Perfect! I have all the requirements. Let me generate the planner.md and code files for you."
-        setRequirementsComplete(true)
-        generateFiles()
-      } else {
-        aiResponse = "Thank you for that information. Do you have any other requirements or shall I proceed with building the MCP tool? (Say 'Yes, build' to continue)"
+    try {
+      // Send to Claude via SSE
+      const response = await fetch('/api/claude', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: `Context: You are helping the user build an MCP (Model Context Protocol) tool based on their initial prompt: "${prompt}". 
+
+Current conversation history:
+${messages.map(m => `${m.role}: ${m.text}`).join('\n')}
+
+User's latest message: ${currentInput}
+
+Your task:
+1. Ask clarifying questions to understand requirements better
+2. Once you have enough information and the user confirms (like saying "Yes, build"), help plan and generate the MCP tool
+3. Be conversational and helpful
+
+Please respond appropriately to continue the conversation.`,
+          conversation_id: 'mcp-builder-session',
+          system_prompt: 'You are Claude, an AI assistant specialized in helping developers build MCP (Model Context Protocol) tools. You ask clarifying questions, understand requirements, and help plan and generate code. Be conversational, helpful, and focused on practical implementation.',
+          allowed_tools: ['Read', 'Write', 'CreateFile', 'ListDir', 'Search'],
+          permission_mode: 'default'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-      
-      const aiMessage: ChatMessage = {
+
+      // Handle SSE stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let assistantResponse = ''
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+                
+                if (data.type === 'content') {
+                  assistantResponse += data.content
+                  
+                  // Update the typing indicator with partial response
+                  setMessages(prev => {
+                    const newMessages = [...prev]
+                    const lastMessage = newMessages[newMessages.length - 1]
+                    
+                    if (lastMessage && lastMessage.role === 'assistant') {
+                      // Update existing assistant message
+                      lastMessage.text = assistantResponse
+                    } else {
+                      // Add new assistant message
+                      newMessages.push({
+                        role: 'assistant',
+                        text: assistantResponse,
+                        ts: Date.now()
+                      })
+                    }
+                    return newMessages
+                  })
+                }
+                
+                if (data.type === 'done' || data.type === 'complete') {
+                  setIsTyping(false)
+                  updatePlannerWithChat()
+                  
+                  // Check if user wants to build
+                  if (currentInput.toLowerCase().includes('yes') && 
+                      currentInput.toLowerCase().includes('build')) {
+                    setRequirementsComplete(true)
+                    setTimeout(() => generateFiles(), 1000)
+                  }
+                  break
+                }
+                
+                if (data.type === 'error') {
+                  throw new Error(data.error || 'Claude API error')
+                }
+              } catch (e) {
+                // Skip malformed JSON
+                continue
+              }
+            }
+          }
+        }
+      }
+
+      // If no assistant response was captured, add a final message
+      if (!assistantResponse) {
+        const aiMessage: ChatMessage = {
+          role: 'assistant',
+          text: 'I received your message. How can I help you with your MCP tool?',
+          ts: Date.now()
+        }
+        setMessages(prev => [...prev, aiMessage])
+      }
+
+    } catch (error) {
+      console.error('Chat error:', error)
+      const errorMessage: ChatMessage = {
         role: 'assistant',
-        text: aiResponse,
+        text: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         ts: Date.now()
       }
-      setMessages(prev => [...prev, aiMessage])
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsTyping(false)
       updatePlannerWithChat()
-    }, 1000)
+    }
   }
 
   // Update planner with chat content

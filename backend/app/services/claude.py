@@ -12,6 +12,7 @@ from claude_code_sdk.types import (
     AssistantMessage, TextBlock, ToolUseBlock, ToolResultBlock, 
     ThinkingBlock, Message, ResultMessage, SystemMessage, UserMessage
 )
+from app.services.workspace_manager import workspace_manager
 from claude_code_sdk import (
     ClaudeSDKError,
     CLINotFoundError,
@@ -40,11 +41,11 @@ class ClaudeRequest(BaseModel):
 
 
 class ClaudeResponse(BaseModel):
-    """Response model for Claude Code SDK calls."""
-    
-    content: str
-    messages: List[Dict[str, Any]]
-    tool_uses: List[Dict[str, Any]] = []
+    """Response from Claude Code SDK."""
+    response: str
+    conversation_id: str
+    workspace_path: Optional[str] = None
+    workspace_stats: Optional[Dict[str, Any]] = None
 
 
 class ClaudeService:
@@ -91,27 +92,25 @@ class ClaudeService:
                 cwd=Path(request.cwd) if request.cwd else Path.cwd()
             )
             
+            # Ensure conversation workspace exists and set as working directory
+            workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
+            logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
+            
+            # Update Claude Code SDK options to use conversation workspace as cwd
+            options.cwd = workspace_path
+            
             logger.info(f"Claude Code SDK call with context: {conversation_id} - {request.prompt[:50]}...")
             
-            # Call Claude Code SDK with conversation context
-            messages = []
-            tool_uses = []
+            # Call Claude Code SDK with conversation context and workspace
             content_parts = []
             
             async for message in query(prompt=full_prompt, options=options):
                 logger.info(f"Received {type(message).__name__}")
-                messages.append(self._message_to_dict(message))
                 
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
                             content_parts.append(block.text)
-                        elif isinstance(block, ToolUseBlock):
-                            # Tool usage - only ToolUseBlock has name and input
-                            tool_uses.append({
-                                'name': block.name,
-                                'input': block.input
-                            })
             
             # Combine all content parts
             final_content = '\n\n'.join(content_parts) if content_parts else "No content generated"
@@ -119,12 +118,16 @@ class ClaudeService:
             # Store this conversation turn for future context
             await self.store_conversation_turn(conversation_id, request.prompt, final_content)
             
+            # Get workspace stats for response
+            workspace_stats = workspace_manager.get_workspace_stats(conversation_id)
+            
             logger.info(f"Claude Code SDK call completed with context stored: {conversation_id}")
             
             return ClaudeResponse(
-                content=final_content,
-                messages=messages,
-                tool_uses=tool_uses
+                response=final_content,
+                conversation_id=conversation_id,
+                workspace_path=workspace_stats.get("path") if workspace_stats else None,
+                workspace_stats=workspace_stats
             )
             
         except CLINotFoundError:
@@ -196,10 +199,17 @@ class ClaudeService:
         
         logger.info(f"Executing Claude Code SDK query with conversation context: {conversation_id}")
         
+        # Ensure conversation workspace exists and set as working directory
+        workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
+        logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
+        
+        # Update Claude Code SDK options to use conversation workspace as cwd
+        options.cwd = workspace_path
+        
         assistant_response_parts: List[str] = []
         
         try:
-            # Execute Claude Code SDK query with context
+            # Execute Claude Code SDK query with context and conversation-specific workspace
             async for message in query(prompt=full_prompt, options=options):
                 message_type = type(message).__name__
                 logger.info(f"Conversation {conversation_id}: Received {message_type}")
