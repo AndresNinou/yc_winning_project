@@ -128,7 +128,7 @@ function StreamEventItem({ event }: { event: StreamEvent }) {
 
   // Special handling for content events
   if (event.type === 'content' && event.content) {
-    return (
+  return (
       <div className="flex items-start gap-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
         <div className="flex-shrink-0 mt-0.5">
           <CheckCircle className="h-4 w-4 text-emerald-400" />
@@ -139,12 +139,12 @@ function StreamEventItem({ event }: { event: StreamEvent }) {
             {getDuration() && (
               <span className="text-xs text-zinc-400">{getDuration()}</span>
             )}
-          </div>
-          <p className="text-xs text-zinc-300 mt-1">{event.content.substring(0, 100)}...</p>
         </div>
+          <p className="text-xs text-zinc-300 mt-1">{event.content.substring(0, 100)}...</p>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <div className={`flex items-start gap-3 p-3 rounded-lg border ${getStatusColor()}`}>
@@ -991,13 +991,13 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
               </Button>
             </div>
             
-            {!leftPanelCollapsed && (
-              <div className="rounded-xl border border-zinc-800 bg-black/60 p-3">
-                <div className="max-h-[500px] overflow-auto text-xs leading-relaxed prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown>{plannerContent}</ReactMarkdown>
-                </div>
-              </div>
-            )}
+                         {!leftPanelCollapsed && (
+               <div className="rounded-xl border border-zinc-800 bg-black/60 p-3">
+                 <div className="max-h-[500px] overflow-auto text-xs leading-relaxed prose prose-invert prose-sm max-w-none">
+                   <ReactMarkdown>{plannerContent}</ReactMarkdown>
+                 </div>
+               </div>
+             )}
           </Card>
 
           {/* MIDDLE: Generated Code Files (Expands when sides collapsed) */}
@@ -1027,7 +1027,7 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
             
             {generatedFiles.length > 0 ? (
               <>
-                <div className="mb-3 flex gap-2 flex-wrap">
+                                 <div className="mb-3 flex gap-2 flex-wrap">
                   {generatedFiles.map((file, index) => (
                     <button
                       key={`${file.name}-${index}`}
@@ -1078,7 +1078,7 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
             
             {!rightPanelCollapsed && (
               <>
-                {/* Chat messages */}
+                                 {/* Chat messages */}
                 <div className="max-h-80 space-y-3 overflow-auto rounded-xl bg-black/30 p-3 mb-3">
                   {/* Build Progress Timeline - Compact One-liner */}
                   {streamEvents.some(event => event.status !== 'pending') && (
@@ -1113,9 +1113,9 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
                     </div>
                   )}
                   
-                  {messages.map((m, i) => (
-                    <div key={`message-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%]`}>
+                   {messages.map((m, i) => (
+                     <div key={`message-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                       <div className={`max-w-[80%]`}>
                         {/* Special styling for tool usage and progress messages */}
                         {m.text.includes('🛠️ **Using Tool:') ? (
                           <div className="flex items-start gap-3 p-3 rounded-lg border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-blue-600/10 mb-2">
@@ -1250,25 +1250,25 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
                             </div>
                           </div>
                         ) : (
-                          <div className={`rounded-xl px-3 py-2 text-sm ${
-                            m.role === 'user' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-300'
-                          }`}>
-                            {m.text}
-                          </div>
+                         <div className={`rounded-xl px-3 py-2 text-sm ${
+                           m.role === 'user' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-300'
+                         }`}>
+                           {m.text}
+                         </div>
                         )}
-                      </div>
-                    </div>
-                  ))}
+                       </div>
+                     </div>
+                   ))}
                   
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="max-w-[80%]">
-                        <div className="rounded-xl bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
-                          <Loader2 className="h-4 w-4 animate-spin" /> AI is typing...
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                                     {isTyping && (
+                     <div className="flex justify-start">
+                       <div className="max-w-[80%]">
+                         <div className="rounded-xl bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
+                           <Loader2 className="h-4 w-4 animate-spin" /> AI is typing...
+                         </div>
+                       </div>
+                     </div>
+                   )}
                 </div>
 
                 {/* Chat input */}
