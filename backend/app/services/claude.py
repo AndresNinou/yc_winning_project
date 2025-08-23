@@ -293,24 +293,48 @@ class ClaudeService:
                             text_content = block.text
                             assistant_response_parts.append(text_content)
                             
-                            # Yield complete text block
+                            # Yield content event (matches chat client expectation)
                             yield json.dumps({
-                                "type": "text_block",
+                                "type": "content",
                                 "content": text_content,
                                 "block_index": block_idx
                             })
                         
                         elif isinstance(block, ToolUseBlock):
-                            logger.info(f"Using MCP tool: {block.name}")
-                            yield json.dumps({
-                                "type": "tool_use",
-                                "tool_name": block.name,
-                                "block_index": block_idx
-                            })
+                            # Distinguish between MCP tools and regular tools
+                            if block.name.startswith("mcp__"):
+                                logger.info(f"Using MCP tool: {block.name}")
+                                # Parse MCP tool details for better frontend display
+                                parts = block.name.split("__")
+                                server_name = parts[1] if len(parts) > 1 else "unknown"
+                                tool_function = parts[2] if len(parts) > 2 else "unknown"
+                                
+                                yield json.dumps({
+                                    "type": "mcp_tool_use",
+                                    "tool_name": block.name,
+                                    "server_name": server_name,
+                                    "tool_function": tool_function,
+                                    "block_index": block_idx
+                                })
+                            else:
+                                logger.info(f"Using regular tool: {block.name}")
+                                yield json.dumps({
+                                    "type": "tool_use",
+                                    "tool_name": block.name,
+                                    "block_index": block_idx
+                                })
             
             # Store this conversation turn for future context
             full_assistant_response = " ".join(assistant_response_parts)
             await self.store_conversation_turn(conversation_id, request.prompt, full_assistant_response)
+            
+            # Send completion event
+            yield json.dumps({
+                "type": "done",
+                "response": full_assistant_response,
+                "conversation_id": conversation_id,
+                "tools_used": len([p for p in assistant_response_parts if "tool" in p.lower()])
+            })
             
         except CLINotFoundError:
             logger.error("Claude Code CLI not found")

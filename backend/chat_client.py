@@ -20,11 +20,13 @@ from rich.prompt import Prompt
 from rich.markdown import Markdown
 from rich import box
 import os
+import os
 
 
 class InteractiveChatClient:
     """Interactive chat client for Claude Code SDK conversations."""
     
+    def __init__(self, base_url: str = os.getenv("BASE_URL", "http://localhost:8000")):
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.api_base = f"{base_url}/api/v1/claude"
@@ -154,6 +156,30 @@ class InteractiveChatClient:
                                         tool_info = f"\n\n🛠️ *Using tool: {tool_name}*"
                                         live_text.append(tool_info, style="dim italic")
                                         live.update(Panel(live_text, title="🤖 Claude", border_style="green"))
+                                        
+                                    elif event_type == "mcp_tool_use":
+                                        tool_name = event_data.get("tool_name", "Unknown")
+                                        server_name = event_data.get("server_name", "unknown")
+                                        tool_function = event_data.get("tool_function", "unknown")
+                                        tools_used.append(tool_name)
+                                        
+                                        # Format MCP tool display with icons and clean names
+                                        mcp_icons = {
+                                            "mcp-server-firecrawl": "🌐",
+                                            "firecrawl": "🌐", 
+                                            "deploy": "🚀",
+                                            "security": "🔒",
+                                            "database": "🗄️"
+                                        }
+                                        icon = mcp_icons.get(server_name, "⚡")
+                                        
+                                        # Clean up display names
+                                        display_server = server_name.replace("mcp-server-", "").title()
+                                        display_function = tool_function.replace("_", " ").title()
+                                        
+                                        mcp_info = f"\n\n🔧 *Using MCP tool: {icon} {display_server} - {display_function}*"
+                                        live_text.append(mcp_info, style="bold cyan")
+                                        live.update(Panel(live_text, title="🤖 Claude (MCP Active)", border_style="cyan"))
                                         
                                     elif event_type == "done":
                                         elapsed = time.time() - start_time
