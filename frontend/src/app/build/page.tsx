@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
 import {
   Rocket,
   Github,
@@ -13,7 +14,6 @@ import {
   FileJson2,
   Send,
   Bot,
-  User,
   FileText,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
@@ -477,13 +477,13 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
               </Button>
             </div>
             
-            {!leftPanelCollapsed && (
-              <div className="rounded-xl border border-zinc-800 bg-black/60 p-3">
-                <pre className="max-h-[500px] overflow-auto text-xs leading-relaxed">
-                  <code>{plannerContent}</code>
-                </pre>
-              </div>
-            )}
+                         {!leftPanelCollapsed && (
+               <div className="rounded-xl border border-zinc-800 bg-black/60 p-3">
+                 <div className="max-h-[500px] overflow-auto text-xs leading-relaxed prose prose-invert prose-sm max-w-none">
+                   <ReactMarkdown>{plannerContent}</ReactMarkdown>
+                 </div>
+               </div>
+             )}
           </Card>
 
           {/* MIDDLE: Generated Code Files (Expands when sides collapsed) */}
@@ -513,10 +513,10 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
             
             {generatedFiles.length > 0 ? (
               <>
-                <div className="mb-3 flex gap-2 flex-wrap">
-                  {generatedFiles.map((file) => (
+                                 <div className="mb-3 flex gap-2 flex-wrap">
+                  {generatedFiles.map((file, index) => (
                     <button
-                      key={file.name}
+                      key={`${file.name}-${index}`}
                       onClick={() => setActiveFile(file.name)}
                       className={`rounded-xl border px-3 py-1 text-xs flex items-center gap-2 whitespace-nowrap ${
                         activeFile === file.name 
@@ -564,36 +564,28 @@ The server provides a \`fetch_page\` tool that takes a Notion page URL and retur
             
             {!rightPanelCollapsed && (
               <>
-                {/* Chat messages */}
-                <div className="max-h-96 space-y-3 overflow-auto rounded-xl bg-black/30 p-3 mb-3">
-                  {messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`flex items-start gap-2 max-w-[80%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                          m.role === 'user' ? 'bg-zinc-700 text-zinc-200' : 'bg-sky-600 text-white'
-                        }`}>
-                          {m.role === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-                        </div>
-                        <div className={`rounded-xl px-3 py-2 text-sm ${
-                          m.role === 'user' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-300'
-                        }`}>
-                          {m.text}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="flex items-start gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white text-xs">
-                          <Bot className="h-3 w-3" />
-                        </div>
-                        <div className="rounded-xl bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
-                          <Loader2 className="h-4 w-4 animate-spin" /> AI is typing...
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                                 {/* Chat messages */}
+                 <div className="max-h-96 space-y-3 overflow-auto rounded-xl bg-black/30 p-3 mb-3">
+                   {messages.map((m, i) => (
+                     <div key={`message-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                       <div className={`max-w-[80%]`}>
+                         <div className={`rounded-xl px-3 py-2 text-sm ${
+                           m.role === 'user' ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-300'
+                         }`}>
+                           {m.text}
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                                     {isTyping && (
+                     <div className="flex justify-start">
+                       <div className="max-w-[80%]">
+                         <div className="rounded-xl bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
+                           <Loader2 className="h-4 w-4 animate-spin" /> AI is typing...
+                         </div>
+                       </div>
+                     </div>
+                   )}
                 </div>
 
                 {/* Chat input */}

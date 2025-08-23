@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { BackgroundBoxesDemo } from '@/components/ui/background-boxes-demo'
 import {
   Rocket,
   Github,
@@ -120,13 +121,18 @@ function Landing({ prompt, setPrompt, onExample, onStart }: { prompt: string; se
   ]
   const canStart = prompt.trim().length > 8
   return (
-    <section className="mx-auto max-w-6xl px-4">
-      <div className="mx-auto mt-20 max-w-3xl text-center">
+    <section className="mx-auto max-w-6xl px-4 relative min-h-screen">
+      {/* Add the animated background */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <BackgroundBoxesDemo />
+      </div>
+      
+      <div className="mx-auto mt-20 max-w-3xl text-center relative z-30">
         <Badge tone="success" className="mb-3">FastMCP mock builder</Badge>
         <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight">Ship <span className="text-white">MCP tools</span> in minutes</h1>
         <p className="mt-3 text-white/70">Type what you want. We open a planning workspace, ask clarifying questions, stream code + build status via SSE, then let you iterate.</p>
       </div>
-      <Card className="mx-auto mt-10 max-w-3xl">
+      <Card className="mx-auto mt-10 max-w-3xl relative z-30">
         <form onSubmit={(e) => { e.preventDefault(); if (canStart) onStart() }}>
           <label className="text-sm text-zinc-400">Your prompt</label>
           <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={EX[0]} />
