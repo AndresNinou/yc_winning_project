@@ -3,8 +3,8 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { prompt, conversation_id, system_prompt, max_turns, allowed_tools, permission_mode, cwd } = body
 
-    // Forward request to Claude backend
-    const backendUrl = process.env.CLAUDE_BACKEND_URL || 'http://localhost:8000'
+    // Forward request to Claude backend - using the URL from chat_client.py
+    const backendUrl = process.env.CLAUDE_BACKEND_URL || 'https://integral-mozilla-ref-db.trycloudflare.com'
     const response = await fetch(`${backendUrl}/api/v1/claude/stream`, {
       method: 'POST',
       headers: {

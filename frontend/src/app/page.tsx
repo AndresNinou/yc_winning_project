@@ -2,187 +2,93 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BackgroundBoxesDemo } from '@/components/ui/background-boxes-demo'
-import {
-  Rocket,
-  Github,
-  BookOpen,
-  ChevronRight,
-} from 'lucide-react'
+import { TopNav } from '@/components/layout'
+import { Button } from '@/components/ui'
 
 /*************************
- * Types
+ * Home Page
  *************************/
-interface ButtonProps {
-  children: React.ReactNode
-  onClick?: () => void
-  variant?: 'primary' | 'ghost' | 'subtle' | 'danger'
-  className?: string
-  disabled?: boolean
-  type?: 'button' | 'submit' | 'reset'
-}
-
-interface TextareaProps {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  placeholder?: string
-  rows?: number
-  className?: string
-}
-
-interface BadgeProps {
-  children: React.ReactNode
-  tone?: 'default' | 'success' | 'warn' | 'info'
-  className?: string
-}
-
-interface CardProps {
-  children: React.ReactNode
-  className?: string
-}
-
-/*************************
- * Minimal UI atoms
- *************************/
-const Button = ({ children, onClick, variant = 'primary', className = '', disabled, type }: ButtonProps) => {
-  const base = 'inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition active:scale-[.98]'
-  const variants: Record<string, string> = {
-    primary: 'bg-white text-black shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed',
-    ghost: 'bg-transparent text-white/90 hover:text-white border border-white/10 hover:border-white/20',
-    subtle: 'bg-zinc-900/50 border border-zinc-800 text-white/90 hover:bg-zinc-900',
-    danger: 'bg-red-500 text-white hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed',
-  }
-  return (
-    <button type={type} disabled={disabled} onClick={onClick} className={`${base} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  )
-}
-
-const Textarea = ({ value, onChange, placeholder, rows = 6, className = '' }: TextareaProps) => (
-  <textarea
-    value={value}
-    onChange={onChange}
-    placeholder={placeholder}
-    rows={rows}
-    className={`w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 ${className}`}
-  />
-)
-
-const Badge = ({ children, tone = 'default', className = '' }: BadgeProps) => {
-  const tones: Record<string, string> = {
-    default: 'bg-zinc-800 text-zinc-200',
-    success: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
-    warn: 'bg-amber-500/20 text-amber-300 border border-amber-500/40',
-    info: 'bg-sky-500/20 text-sky-300 border border-sky-500/40',
-  }
-  return <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${tones[tone]} ${className}`}>{children}</span>
-}
-
-const Card = ({ children, className = '' }: CardProps) => (
-  <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 ${className}`}>{children}</div>
-)
-
-/*************************
- * Layout bits
- *************************/
-function TopNav({ onDocs }: { onDocs: () => void }) {
-  return (
-    <div className="sticky top-0 z-30 w-full border-b border-zinc-900/80 bg-[#0b0b0c]/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black"><Rocket className="h-4 w-4" /></div>
-          <span className="text-sm font-semibold tracking-wide text-white/90">MCP Tool Builder</span>
-          <Badge className="ml-2" tone="info">beta</Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={onDocs}><BookOpen className="h-4 w-4" /> Docs</Button>
-          <a href="#" className="hidden md:inline-flex"><Button variant="ghost"><Github className="h-4 w-4" /> GitHub</Button></a>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Footer() {
-  return (
-    <div className="mt-20 border-t border-zinc-900/80 py-8 text-center text-xs text-zinc-500">© {new Date().getFullYear()} MCP Tool Builder • YC-style demo</div>
-  )
-}
-
-/*************************
- * Landing
- *************************/
-function Landing({ prompt, setPrompt, onExample, onStart }: { prompt: string; setPrompt: (s: string) => void; onExample: (s: string) => void; onStart: () => void }) {
-  const EX = [
-    'Build an MCP that monitors GitHub issues for a repo and exposes search_issues(owner, repo, query).',
-    'Make a Notion MCP that fetches a page by URL and returns markdown.',
-    'Create a Postgres MCP with list_tables, describe_table, select(query, limit).',
-  ]
-  const canStart = prompt.trim().length > 8
-  return (
-    <section className="mx-auto max-w-6xl px-4 relative min-h-screen">
-      {/* Add the animated background */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
-        <BackgroundBoxesDemo />
-      </div>
-      
-      <div className="mx-auto mt-20 max-w-3xl text-center relative z-30">
-        <Badge tone="success" className="mb-3">FastMCP mock builder</Badge>
-        <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight">Ship <span className="text-white">MCP tools</span> in minutes</h1>
-        <p className="mt-3 text-white/70">Type what you want. We open a planning workspace, ask clarifying questions, stream code + build status via SSE, then let you iterate.</p>
-      </div>
-      <Card className="mx-auto mt-10 max-w-3xl relative z-30">
-        <form onSubmit={(e) => { e.preventDefault(); if (canStart) onStart() }}>
-          <label className="text-sm text-zinc-400">Your prompt</label>
-          <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={EX[0]} />
-          <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2">
-              {EX.map((ex, i) => (
-                <button key={i} type="button" onClick={() => onExample(ex)} className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900">Use example {i + 1}</button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 self-end">
-              <Button type="submit" disabled={!canStart}>Build an MCP <ChevronRight className="h-4 w-4" /></Button>
-            </div>
-          </div>
-        </form>
-      </Card>
-    </section>
-  )
-}
-
-/*************************
- * Root component (includes landing + builder for preview)
- *************************/
-export default function App() {
-  const [prompt, setPrompt] = useState('')
+export default function Home() {
+  const [prompt, setPrompt] = useState('Build an MCP that monitors GitHub issues for a repo and exposes search_issues(owner, repo, query).')
   const router = useRouter()
 
-  const handleStart = () => {
-    const projectName = suggestName(prompt)
-    router.push(`/build?${new URLSearchParams({ q: prompt, name: projectName })}`)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (prompt.trim()) {
+      const encodedPrompt = encodeURIComponent(prompt.trim())
+      const projectName = prompt.trim().substring(0, 50)
+      const encodedName = encodeURIComponent(projectName)
+      router.push(`/build?q=${encodedPrompt}&name=${encodedName}`)
+    }
   }
+
+  const useExample = (example: string) => {
+    setPrompt(example)
+  }
+
+  const examples = [
+    'Build an MCP that monitors GitHub issues for a repo and exposes search_issues(owner, repo, query).',
+    'Make a Notion MCP that fetches a page by URL and returns markdown.',
+    'Create a Postgres MCP with list_tables, describe_table, select(query, limit).'
+  ]
 
   return (
     <div className="min-h-screen w-full bg-[#0b0b0c] text-white">
       <TopNav onDocs={() => alert('Docs coming soon')} />
-      <Landing
-        prompt={prompt}
-        setPrompt={setPrompt}
-        onExample={(e) => setPrompt(e)}
-        onStart={handleStart}
-      />
-      <Footer />
+      <main className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4">
+        <div className="w-full max-w-4xl">
+          <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-br from-blue-950/20 via-zinc-900/40 to-purple-950/20 p-8 md:p-12">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+            
+            <div className="relative z-10 text-center">
+              <h1 className="text-4xl font-bold tracking-tight text-white md:text-6xl">
+                Ship MCP tools in minutes
+              </h1>
+              <p className="mt-6 text-lg text-zinc-300 md:text-xl max-w-3xl mx-auto">
+                Type what you want. We open a planning workspace, ask clarifying questions, stream code + build status via SSE, then let you iterate.
+              </p>
+              
+              <div className="mt-12 max-w-2xl mx-auto">
+                <form onSubmit={handleSubmit} className="rounded-2xl border border-zinc-700 bg-zinc-900/60 p-6 backdrop-blur-sm">
+                  <div className="text-left">
+                    <h3 className="text-lg font-semibold text-white mb-2">MCP Tool Builder</h3>
+                    <p className="text-sm text-zinc-400 mb-4">Ship MCP tools in minutes with AI-powered planning and code generation</p>
+                    
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-zinc-300">Your prompt</label>
+                      <textarea 
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="w-full h-24 rounded-xl bg-zinc-800/60 border border-zinc-700 px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        placeholder="Describe your MCP tool requirements..."
+                      />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-2">
+                          {examples.map((example, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => useExample(example)}
+                              className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors"
+                            >
+                              Use example {index + 1}
+                            </button>
+                          ))}
+                        </div>
+                        <Button type="submit" disabled={!prompt.trim()}>
+                          Build an MCP →
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   )
-}
-
-/*************************
- * Helpers
- *************************/
-function suggestName(prompt: string) {
-  if (!prompt) return 'Untitled MCP Tool'
-  const noun = prompt.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join('')
-  return noun ? `${noun}MCP` : 'Untitled MCP Tool'
 }

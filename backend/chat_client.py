@@ -24,7 +24,7 @@ from rich import box
 class InteractiveChatClient:
     """Interactive chat client for Claude Code SDK conversations."""
     
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "https://integral-mozilla-ref-db.trycloudflare.com"):
         self.base_url = base_url
         self.api_base = f"{base_url}/api/v1/claude"
         self.console = Console()
