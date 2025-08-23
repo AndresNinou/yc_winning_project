@@ -1,0 +1,44 @@
+{
+  "mcpServers": {
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${NOTION_API_KEY}"
+      }
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "postgres-mcp-server",
+      "args": ["--connection-string", "${DATABASE_URL}"],
+      "env": {
+        "LOG_LEVEL": "info"
+      }
+    },
+    "github": {
+      "type": "sse",
+      "url": "https://mcp.github.com/sse",
+      "headers": {
+        "Authorization": "token ${GITHUB_TOKEN}",
+        "User-Agent": "Claude-Code-MCP/1.0"
+      }
+    },
+    "local-files": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "env": {
+        "ALLOWED_DIRECTORIES": "/workspace,/tmp"
+      }
+    },
+    "deploy-server": {
+      "type": "stdio", 
+      "command": "uv",
+      "args": ["run", "python", "/home/newton/yc_winning_hackathon/backend/mcps/deploy.py"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "CHROME_WS_URL": "${CHROME_WS_URL}"
+      }
+    }
+  }
+}

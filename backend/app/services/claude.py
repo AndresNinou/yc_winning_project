@@ -28,8 +28,18 @@ from app.core.config import settings
 from loguru import logger
 
 
+class MCPServerConfig(BaseModel):
+    """Configuration for an MCP server."""
+    type: Literal["stdio", "sse", "http"] = "stdio"
+    command: Optional[str] = None
+    args: Optional[List[str]] = None
+    env: Optional[Dict[str, str]] = None
+    url: Optional[str] = None  # For SSE/HTTP transport
+    headers: Optional[Dict[str, str]] = None  # For HTTP transport
+
+
 class ClaudeRequest(BaseModel):
-    """Request model for Claude Code SDK calls."""
+    """Request model for Claude Code SDK calls with MCP server support."""
     
     prompt: str
     system_prompt: Optional[str] = None
@@ -38,6 +48,11 @@ class ClaudeRequest(BaseModel):
     permission_mode: Literal["acceptEdits", "bypassPermissions", "default", "plan"] = "default"
     cwd: Optional[str] = None
     conversation_id: Optional[str] = None  # For maintaining conversation state
+    
+    # MCP Server Configuration
+    mcp_servers: Optional[Dict[str, MCPServerConfig]] = None
+    mcp_config_file: Optional[str] = None  # Path to .mcp.json file
+    permission_prompt_tool_name: Optional[str] = None  # Custom permission prompt tool
 
 
 class ClaudeResponse(BaseModel):
@@ -66,6 +81,81 @@ class ClaudeService:
         
         logger.info("Claude Code service initialized")
 
+    async def prepare_mcp_servers(self, request: ClaudeRequest, workspace_path: str) -> Optional[Dict[str, Any]]:
+        """
+        Prepare MCP server configuration for Claude Code SDK.
+        
+        Args:
+            request: The Claude request with MCP server configuration
+            workspace_path: The conversation workspace path
+            
+        Returns:
+            Dict containing MCP server configurations or None
+        """
+        mcp_servers = {}
+        
+        # Load from .mcp.json file if specified
+        if request.mcp_config_file:
+            try:
+                config_path = Path(workspace_path) / request.mcp_config_file
+                if config_path.exists():
+                    with open(config_path, 'r') as f:
+                        config_data = json.load(f)
+                        if 'mcpServers' in config_data:
+                            mcp_servers.update(config_data['mcpServers'])
+                            logger.info(f"Loaded MCP servers from {config_path}: {list(mcp_servers.keys())}")
+            except Exception as e:
+                logger.warning(f"Failed to load MCP config file {request.mcp_config_file}: {e}")
+        
+        # Add servers from request configuration
+        if request.mcp_servers:
+            for server_name, server_config in request.mcp_servers.items():
+                server_dict = {}
+                
+                # Handle different transport types
+                if server_config.type == "stdio":
+                    server_dict["type"] = "stdio"
+                    if server_config.command:
+                        server_dict["command"] = server_config.command
+                    if server_config.args:
+                        server_dict["args"] = server_config.args
+                    if server_config.env:
+                        server_dict["env"] = server_config.env
+                        
+                elif server_config.type == "sse":
+                    server_dict["type"] = "sse"
+                    if server_config.url:
+                        server_dict["url"] = server_config.url
+                    if server_config.headers:
+                        server_dict["headers"] = server_config.headers
+                        
+                elif server_config.type == "http":
+                    server_dict["type"] = "http"
+                    if server_config.url:
+                        server_dict["url"] = server_config.url
+                    if server_config.headers:
+                        server_dict["headers"] = server_config.headers
+                
+                mcp_servers[server_name] = server_dict
+                logger.info(f"Added MCP server '{server_name}' with type '{server_config.type}'")
+        
+        # Look for default .mcp.json in workspace
+        default_mcp_file = Path(workspace_path) / ".mcp.json"
+        if default_mcp_file.exists():
+            try:
+                with open(default_mcp_file, 'r') as f:
+                    config_data = json.load(f)
+                    if 'mcpServers' in config_data:
+                        # Merge with existing servers (request config takes precedence)
+                        for server_name, server_config in config_data['mcpServers'].items():
+                            if server_name not in mcp_servers:
+                                mcp_servers[server_name] = server_config
+                                logger.info(f"Loaded default MCP server '{server_name}' from workspace .mcp.json")
+            except Exception as e:
+                logger.warning(f"Failed to load default .mcp.json from workspace: {e}")
+        
+        return mcp_servers if mcp_servers else None
+
     async def generate_response(self, request: ClaudeRequest) -> ClaudeResponse:
         """Generate a non-streaming response from Claude Code SDK WITH CONVERSATION MEMORY.
         
@@ -83,13 +173,18 @@ class ClaudeService:
             # Build conversation context for memory continuity
             full_prompt = await self.build_conversation_context(conversation_id, request.prompt)
             
-            # Prepare Claude Code options
+            # Prepare MCP servers configuration
+            mcp_servers = await self.prepare_mcp_servers(request, workspace_path)
+            
+            # Prepare Claude Code options with MCP server support
             options = ClaudeCodeOptions(
-                system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant. Maintain conversation continuity based on the context provided.",
+                system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access. Maintain conversation continuity based on the context provided.",
                 max_turns=300,  # Standard high limit to ensure tool execution cycles can complete
                 allowed_tools=request.allowed_tools or ["Read", "Write", "Bash", "ListDir", "Search", "StrReplace"],
                 permission_mode=request.permission_mode,
-                cwd=Path(request.cwd) if request.cwd else Path.cwd()
+                cwd=Path(request.cwd) if request.cwd else Path.cwd(),
+                mcp_servers=mcp_servers,  # Add MCP server configuration
+                permission_prompt_tool_name=request.permission_prompt_tool_name  # Custom permission prompt
             )
             
             # Ensure conversation workspace exists and set as working directory
@@ -188,23 +283,26 @@ class ClaudeService:
         # Build conversation context
         full_prompt = await self.build_conversation_context(conversation_id, request.prompt)
         
-        # Configure Claude Code options
-        options = ClaudeCodeOptions(
-            system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant. Maintain conversation continuity based on the context provided.",
-            max_turns=300,  # Standard high limit to ensure tool execution cycles can complete
-            allowed_tools=request.allowed_tools or ["Read", "Write", "Bash", "ListDir", "Search", "StrReplace"],
-            permission_mode=request.permission_mode,
-            cwd=Path(request.cwd) if request.cwd else Path.cwd()
-        )
-        
-        logger.info(f"Executing Claude Code SDK query with conversation context: {conversation_id}")
-        
-        # Ensure conversation workspace exists and set as working directory
+        # Ensure conversation workspace exists first
         workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
         logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
         
-        # Update Claude Code SDK options to use conversation workspace as cwd
-        options.cwd = workspace_path
+        # Prepare MCP servers configuration
+        mcp_servers = await self.prepare_mcp_servers(request, workspace_path)
+        
+        # Configure Claude Code options with MCP server support
+        options = ClaudeCodeOptions(
+            system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access. Maintain conversation continuity based on the context provided.",
+            max_turns=300,  # Standard high limit to ensure tool execution cycles can complete
+            allowed_tools=request.allowed_tools or ["Read", "Write", "Bash", "ListDir", "Search", "StrReplace"],
+            permission_mode=request.permission_mode,
+            cwd=Path(workspace_path),  # Use workspace path directly
+            mcp_servers=mcp_servers,  # Add MCP server configuration
+            permission_prompt_tool_name=request.permission_prompt_tool_name  # Custom permission prompt
+        )
+        
+        logger.info(f"Executing Claude Code SDK query with conversation context: {conversation_id}")
+        logger.info(f"MCP servers configured: {list(mcp_servers.keys()) if mcp_servers else 'None'}")
         
         assistant_response_parts: List[str] = []
         
