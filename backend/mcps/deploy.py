@@ -20,8 +20,6 @@ except Exception:
 
 load_dotenv()
 
-ORG_NAME = os.getenv("GITHUB_ORG", "MCP-TestPad")
-
 browser_session = BrowserSession(
     cdp_url=os.getenv("CHROME_WS_URL"),
     is_local=False
@@ -96,19 +94,17 @@ def _configure_git_tls(repo_dir: Path):
     if _CERTIFI_PATH:
         _run(["git", "config", "http.sslCAInfo", _CERTIFI_PATH], cwd=repo_dir)
 
-def make_repo(folder_path: str, repo_name: str, org: Optional[str] = None) -> Dict[str, str]:
+def make_repo(folder_path: str, repo_name: str) -> Dict[str, str]:
     """
-    Wipes any local .git, creates/uses a PRIVATE repo in the specified GitHub organization,
-    then pushes 'main'. Requires a classic PAT in GITHUB_TOKEN with org permissions to create repos.
-    Optionally set GITHUB_ORG; default is 'MCP-TestPad'.
+    Wipes any local .git, creates/uses a PUBLIC repo on your user, pushes main.
+    Requires CLASSIC PAT in GITHUB_TOKEN with 'public_repo' or 'repo'.
     """
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        raise RuntimeError("Set GITHUB_TOKEN to a classic PAT with 'repo' scope and org repo-create permission.")
+        raise RuntimeError("Set GITHUB_TOKEN to a classic PAT with 'public_repo' or 'repo' scope.")
+
     if not repo_name:
         raise RuntimeError("project_name/repo_name is required.")
-
-    org = org or os.environ.get("GITHUB_ORG", "MCP-TestPad")
 
     p = Path(folder_path).expanduser().resolve()
     p.mkdir(parents=True, exist_ok=True)
@@ -132,34 +128,27 @@ def make_repo(folder_path: str, repo_name: str, org: Optional[str] = None) -> Di
         if "author identity unknown" in stderr or "please tell me who you are" in stderr:
             raise RuntimeError(
                 "Configure git:\n"
-                '  git config --global user.name "Your Name"\n'
-                '  git config --global user.email "you@example.com"'
+                "  git config --global user.name \"Your Name\"\n"
+                "  git config --global user.email \"you@example.com\""
             )
         _run(["git", "commit", "--allow-empty", "-m", "Initial commit"], cwd=p)
 
-    # Create or reuse GitHub repo in the organization
+    # Create or reuse GitHub repo on the authenticated user
     try:
-        data = _api(
-            "POST",
-            f"https://api.github.com/orgs/{org}/repos",
-            token,
-            {"name": repo_name, "private": True, "auto_init": False}
-        )
+        data = _api("POST", "https://api.github.com/user/repos", token,
+                    {"name": repo_name, "private": False, "auto_init": False})
         remote = data["clone_url"]
     except RuntimeError as e:
-        msg = str(e)
-        if msg.startswith("422"):
-            # Repo exists in the org -> reuse
-            remote = _api("GET", f"https://api.github.com/repos/{org}/{repo_name}", token)["clone_url"]
-        elif msg.startswith("403"):
-            raise RuntimeError(
-                f"Forbidden creating repo in org '{org}'. Ensure the token has rights to create repos in this org."
-            )
+        if str(e).startswith("422"):
+            me = _api("GET", "https://api.github.com/user", token)
+            remote = _api("GET", f"https://api.github.com/repos/{me['login']}/{repo_name}", token)["clone_url"]
         else:
             raise
 
+    # Ensure git uses trusted CA for HTTPS
     _configure_git_tls(p)
 
+    # Push with HTTP Basic using PAT
     _run(["git", "remote", "remove", "origin"], cwd=p, allow_fail=True)
     _run(["git", "remote", "add", "origin", remote], cwd=p)
 
@@ -184,7 +173,7 @@ async def deploy(project_name: Optional[str] = None, folder_path: Optional[str] 
     if not folder_path:
         folder_path = f"./{project_name}"
 
-    make_repo(folder_path, project_name, ORG_NAME)
+    make_repo(folder_path, project_name)
 
     llm = ChatGroq(model="meta-llama/llama-4-maverick-17b-128e-instruct")
 
