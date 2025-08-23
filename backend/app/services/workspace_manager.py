@@ -15,23 +15,36 @@ from pathlib import Path
 from typing import Dict, Optional
 from loguru import logger
 
+# Get the backend directory (where this file is located)
+BACKEND_DIR = Path(__file__).parent.parent.parent
+DEFAULT_WORKSPACE_DIR = BACKEND_DIR / "workspaces"
+
 
 class ConversationWorkspaceManager:
     """Manages isolated workspaces for Claude Code conversations."""
     
-    def __init__(self, base_workspace_dir: str = "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/workspaces"):
+    def __init__(self, base_workspace_dir: Optional[str] = None):
         """
         Initialize the workspace manager.
         
         Args:
-            base_workspace_dir: Base directory where conversation folders are created
+            base_workspace_dir: Base directory where conversation folders are created.
+                              If None, uses ./workspaces relative to backend directory.
         """
-        self.base_dir = Path(base_workspace_dir)
+        if base_workspace_dir is None:
+            self.base_dir = DEFAULT_WORKSPACE_DIR
+        else:
+            # If provided, resolve relative to backend directory
+            if not Path(base_workspace_dir).is_absolute():
+                self.base_dir = BACKEND_DIR / base_workspace_dir
+            else:
+                self.base_dir = Path(base_workspace_dir)
+        
         self.active_workspaces: Dict[str, Dict] = {}
         
         # Ensure base directory exists
         self.base_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Workspace manager initialized with base dir: {self.base_dir}")
+        logger.info(f"Workspace manager initialized with base dir: {self.base_dir.resolve()}")
     
     def create_conversation_workspace(self, conversation_id: Optional[str] = None) -> str:
         """

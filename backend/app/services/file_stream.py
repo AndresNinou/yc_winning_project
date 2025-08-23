@@ -8,7 +8,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 from threading import Thread
 from queue import Queue, Empty
 
@@ -20,7 +20,8 @@ from app.core.config import settings
 from app.core.log_config import logger
 
 # Get the project root directory (parent of backend directory)
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# This ensures it works on any machine regardless of absolute path
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 
 
 class FileChangeHandler(FileSystemEventHandler):
@@ -42,8 +43,11 @@ class FileChangeHandler(FileSystemEventHandler):
         Args:
             event: File system event from watchdog
         """
+        # Convert paths to string for consistent handling
+        src_path = str(event.src_path)
+        
         # Skip directory events and hidden files
-        if event.is_directory or self._is_hidden_file(event.src_path):
+        if event.is_directory or self._is_hidden_file(src_path):
             return
             
         # Use time.time() instead of asyncio event loop time
@@ -51,19 +55,20 @@ class FileChangeHandler(FileSystemEventHandler):
         
         # Create event data
         event_data = {
-            "id": f"{event.event_type}_{hash(event.src_path)}_{event.src_path.split('/')[-1]}",
+            "id": f"{event.event_type}_{hash(src_path)}_{src_path.split('/')[-1]}",
             "event_type": event.event_type,
-            "src_path": event.src_path,
+            "src_path": src_path,
             "timestamp": time.time(),
-            "file_name": os.path.basename(event.src_path),
-            "relative_path": self._get_relative_path(event.src_path)
+            "file_name": os.path.basename(src_path),
+            "relative_path": self._get_relative_path(src_path)
         }
         
         # Add destination path for moved events
         if hasattr(event, 'dest_path'):
-            event_data["dest_path"] = event.dest_path
-            event_data["dest_file_name"] = os.path.basename(event.dest_path)
-            event_data["dest_relative_path"] = self._get_relative_path(event.dest_path)
+            dest_path = str(event.dest_path)
+            event_data["dest_path"] = dest_path
+            event_data["dest_file_name"] = os.path.basename(dest_path)
+            event_data["dest_relative_path"] = self._get_relative_path(dest_path)
         
         try:
             self.event_queue.put_nowait(event_data)
@@ -117,7 +122,7 @@ class FileStreamService:
     
     def __init__(self):
         """Initialize the file stream service."""
-        self.observer: Observer | None = None
+        self.observer: Optional[Any] = None
         self.event_queue: Queue = Queue()
         self.handler = FileChangeHandler(self.event_queue)
         self.logger = logger
@@ -128,7 +133,10 @@ class FileStreamService:
         Args:
             watch_path: Path to monitor for changes
         """
-        if self.observer and self.observer.is_alive():
+        if (self.observer is not None and 
+            hasattr(self.observer, 'is_alive') and 
+            callable(getattr(self.observer, 'is_alive', None)) and
+            self.observer.is_alive()):
             self.logger.warning("File monitoring already active")
             return
             
@@ -143,9 +151,14 @@ class FileStreamService:
     
     def stop_monitoring(self) -> None:
         """Stop file system monitoring."""
-        if self.observer and self.observer.is_alive():
-            self.observer.stop()
-            self.observer.join(timeout=5.0)
+        if (self.observer is not None and 
+            hasattr(self.observer, 'is_alive') and 
+            callable(getattr(self.observer, 'is_alive', None)) and
+            self.observer.is_alive()):
+            if hasattr(self.observer, 'stop') and callable(getattr(self.observer, 'stop', None)):
+                self.observer.stop()
+            if hasattr(self.observer, 'join') and callable(getattr(self.observer, 'join', None)):
+                self.observer.join(timeout=5.0)
             self.logger.info("Stopped file monitoring")
     
     async def stream_events(self) -> AsyncGenerator[Dict[str, Any], None]:

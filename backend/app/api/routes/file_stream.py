@@ -15,7 +15,8 @@ from app.core.log_config import logger
 from app.services.file_stream import create_file_stream_response, file_stream_service
 
 # Get the project root directory (parent of backend directory)
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# This ensures it works on any machine regardless of absolute path  
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 
 router = APIRouter(prefix="/stream", tags=["file-streaming"])
 
@@ -144,22 +145,21 @@ async def get_streaming_status() -> dict:
         dict: Current streaming status and statistics
     """
     try:
-        is_active = (
+        observer_alive = (
             file_stream_service.observer is not None 
+            and hasattr(file_stream_service.observer, 'is_alive')
+            and callable(getattr(file_stream_service.observer, 'is_alive', None))
             and file_stream_service.observer.is_alive()
         )
         
         queue_size = file_stream_service.event_queue.qsize()
         
         return {
-            "status": "active" if is_active else "inactive",
-            "monitoring_active": is_active,
+            "status": "active" if observer_alive else "inactive",
+            "monitoring_active": observer_alive,
             "queued_events": queue_size,
             "service_info": {
-                "observer_alive": (
-                    file_stream_service.observer.is_alive() 
-                    if file_stream_service.observer else False
-                ),
+                "observer_alive": observer_alive,
                 "queue_empty": file_stream_service.event_queue.empty()
             }
         }

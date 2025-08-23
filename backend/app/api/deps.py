@@ -7,7 +7,7 @@ database session management and other shared dependencies.
 
 from typing import Annotated, AsyncGenerator
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.db import async_session_maker
 
@@ -22,8 +22,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     Yields:
         AsyncSession: Database session for the request
     """
-    async with async_session_maker() as session:
+    session = async_session_maker()
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 # Type alias for database session dependency
