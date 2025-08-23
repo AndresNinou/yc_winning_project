@@ -8,6 +8,7 @@ tools operate, ensuring complete isolation between different chat sessions.
 
 import os
 import shutil
+import subprocess
 import time
 import uuid
 from datetime import datetime
@@ -18,6 +19,10 @@ from loguru import logger
 # Get the backend directory (where this file is located)
 BACKEND_DIR = Path(__file__).parent.parent.parent
 DEFAULT_WORKSPACE_DIR = BACKEND_DIR / "workspaces"
+
+# MCP Template Configuration
+MCP_TEMPLATE_REPO = "https://github.com/dedalus-labs/brave-search-mcp.git"
+MCP_TEMPLATE_DIR = "mcp-server"
 
 
 class ConversationWorkspaceManager:
@@ -46,6 +51,56 @@ class ConversationWorkspaceManager:
         self.base_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Workspace manager initialized with base dir: {self.base_dir.resolve()}")
     
+    def _setup_mcp_template(self, workspace_path: Path) -> bool:
+        """
+        Clone and initialize MCP template in the workspace.
+        
+        Args:
+            workspace_path: Path to the workspace directory
+            
+        Returns:
+            success: True if template setup succeeded, False otherwise
+        """
+        try:
+            mcp_path = workspace_path / MCP_TEMPLATE_DIR
+            
+            # Clone the MCP template repository
+            logger.info(f"Cloning MCP template from {MCP_TEMPLATE_REPO}")
+            result = subprocess.run([
+                "git", "clone", MCP_TEMPLATE_REPO, str(mcp_path)
+            ], capture_output=True, text=True, cwd=workspace_path)
+            
+            if result.returncode != 0:
+                logger.error(f"Failed to clone MCP template: {result.stderr}")
+                return False
+            
+            # Remove original .git directory
+            git_dir = mcp_path / ".git"
+            if git_dir.exists():
+                shutil.rmtree(git_dir)
+                logger.info("Removed original .git history from MCP template")
+            
+            # Initialize new git repository
+            result = subprocess.run([
+                "git", "init"
+            ], capture_output=True, text=True, cwd=mcp_path)
+            
+            if result.returncode != 0:
+                logger.warning(f"Failed to initialize git repository: {result.stderr}")
+                # Continue anyway, git init failure is not critical
+            
+            # Set initial branch to main
+            subprocess.run([
+                "git", "branch", "-m", "main"
+            ], capture_output=True, text=True, cwd=mcp_path)
+            
+            logger.info(f"MCP template successfully set up at {mcp_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error setting up MCP template: {e}")
+            return False
+    
     def create_conversation_workspace(self, conversation_id: Optional[str] = None) -> str:
         """
         Create a new isolated workspace for a conversation.
@@ -68,19 +123,24 @@ class ConversationWorkspaceManager:
         (workspace_path / "outputs").mkdir(exist_ok=True)
         (workspace_path / "logs").mkdir(exist_ok=True)
         
+        # Set up MCP template automatically
+        mcp_setup_success = self._setup_mcp_template(workspace_path)
+        
         # Track the workspace
         workspace_info = {
             "path": str(workspace_path),
             "created_at": datetime.now().isoformat(),
             "last_accessed": datetime.now().isoformat(),
-            "file_count": 0
+            "file_count": 0,
+            "mcp_template_setup": mcp_setup_success
         }
         
         self.active_workspaces[conversation_id] = workspace_info
         
         # Create a README for the workspace
+        mcp_status = "✅ Ready" if mcp_setup_success else "❌ Failed"
         readme_content = f"""# Claude Code Conversation Workspace
-        
+
 Conversation ID: {conversation_id}
 Created: {workspace_info['created_at']}
 
@@ -88,6 +148,17 @@ Created: {workspace_info['created_at']}
 - `files/` - Working files for this conversation
 - `outputs/` - Generated outputs and results
 - `logs/` - Conversation-specific logs
+- `{MCP_TEMPLATE_DIR}/` - MCP Server Template ({mcp_status})
+
+## MCP Development:
+This workspace includes the Brave Search MCP template for rapid MCP server development.
+The template provides a complete TypeScript/Node.js foundation with:
+- Web search and local search tools
+- Proper MCP architecture
+- Docker support
+- Build and deployment scripts
+
+Navigate to `{MCP_TEMPLATE_DIR}/` to start building your MCP server.
 
 This workspace is isolated from other conversations.
 """

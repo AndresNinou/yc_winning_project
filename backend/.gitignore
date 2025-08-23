@@ -16,3 +16,4 @@ htmlcov
 *.sqlite
 *.sqlite3
 #.mcp.json
+workspaces/

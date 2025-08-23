@@ -27,27 +27,39 @@ import json
 from pathlib import Path
 
 from app.core.config import settings
-# Focused system prompt for MCP development (concise version to avoid argument length limits)
-FOCUSED_SYSTEM_PROMPT = """You are a Senior Software Engineer specialized in building MCP (Model Context Protocol) servers.
-
-Your workflow:
-1. **PLAN**: Ask concise questions, create /docs/plan.md with architecture, steps, and checklist
-2. **BUILD**: Implement following TypeScript MCP standards (src/index.ts entry, streamable HTTP transport)
-3. **TEST**: Manually test each function before MCP encapsulation - no mocks, real API calls
-4. **DEPLOY**: Use Deploy tool, ensure 0 build errors
-5. **FEEDBACK LOOP**: Don't stop until success criteria achieved
-
-Key Requirements:
-- Build production-ready MCP servers with proper error handling
-- Test manually with real API keys before deployment
-- Use battle-tested, minimal solutions
-- Follow MCP server architecture: src/index.ts, streamable HTTP, proper types
-- Implement comprehensive error handling and logging
-- Never use mocks - always test real functionality
-
-You have UNRESTRICTED access to ALL tools. Execute immediately without asking permission."""
-
+from app.core.system_prompts.prompts import system_prompt
 from loguru import logger
+
+
+def create_claude_md_file(workspace_path: Path) -> None:
+    """
+    Create CLAUDE.md file in workspace with full comprehensive system prompt.
+    Claude Code SDK automatically reads CLAUDE.md files at startup.
+    """
+    claude_md_path = workspace_path / "CLAUDE.md"
+    
+    # Write the full comprehensive system prompt to CLAUDE.md
+    with open(claude_md_path, 'w', encoding='utf-8') as f:
+        f.write(f"""# Claude MCP Development Assistant
+
+{system_prompt}
+
+---
+
+## Workspace Context
+
+This is an isolated sandbox workspace for MCP development. Each conversation gets its own dedicated workspace to ensure complete isolation.
+
+**Current Workspace:** `{workspace_path.name}`
+
+You have unrestricted access to all tools within this workspace. Build, test, and deploy MCP servers following the comprehensive guidelines above.
+""")
+    
+    logger.info(f"Created CLAUDE.md with full system prompt in {workspace_path}")
+
+
+# Simple system prompt for SDK (CLAUDE.md provides the comprehensive instructions)
+SIMPLE_SYSTEM_PROMPT = "You are a Senior Software Engineer. Follow the instructions in CLAUDE.md for comprehensive MCP development guidelines."
 
 
 class MCPServerConfig(BaseModel):
@@ -129,6 +141,9 @@ class ClaudeService:
             workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
             logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
             
+            # Create CLAUDE.md with full comprehensive system prompt
+            create_claude_md_file(Path(workspace_path))
+            
             # Configure MCP servers - WORKING FIRECRAWL ONLY (deploy disabled)
             mcp_servers = {
                 "firecrawl": {
@@ -152,7 +167,7 @@ class ClaudeService:
                 mcp_servers=cast(Any, mcp_servers),
                 # Fix type error: allowed_tools cannot be None, use empty list for all tools
                 allowed_tools=request.allowed_tools or [],
-                system_prompt=FOCUSED_SYSTEM_PROMPT,  # Concise system prompt to avoid argument length limits
+                system_prompt=SIMPLE_SYSTEM_PROMPT,  # Simple prompt - CLAUDE.md contains full comprehensive instructions
                 max_turns=request.max_turns or 300,
                 permission_mode="bypassPermissions",  # 🚨 DANGEROUS: Skip ALL permission prompts
                 cwd=Path(workspace_path)
@@ -253,6 +268,9 @@ class ClaudeService:
         workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
         logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
         
+        # Create CLAUDE.md with full comprehensive system prompt
+        create_claude_md_file(Path(workspace_path))
+        
         # Configure MCP servers - WORKING FIRECRAWL ONLY (deploy disabled)
         mcp_servers = {
             "firecrawl": {
@@ -268,7 +286,7 @@ class ClaudeService:
             mcp_servers=cast(Any, mcp_servers),
             # Fix type error: allowed_tools cannot be None, use empty list for all tools
             allowed_tools=request.allowed_tools or [],
-            system_prompt=FOCUSED_SYSTEM_PROMPT,  # Concise system prompt to avoid argument length limits
+            system_prompt=SIMPLE_SYSTEM_PROMPT,  # Simple prompt - CLAUDE.md contains full comprehensive instructions
             max_turns=request.max_turns or 300,
             permission_mode="bypassPermissions",  # 🚨 DANGEROUS: Skip ALL permission prompts
             cwd=Path(workspace_path)
