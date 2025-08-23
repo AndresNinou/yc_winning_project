@@ -1,103 +1,182 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  Rocket,
+  Github,
+  BookOpen,
+  ChevronRight,
+} from 'lucide-react'
+
+/*************************
+ * Types
+ *************************/
+interface ButtonProps {
+  children: React.ReactNode
+  onClick?: () => void
+  variant?: 'primary' | 'ghost' | 'subtle' | 'danger'
+  className?: string
+  disabled?: boolean
+  type?: 'button' | 'submit' | 'reset'
+}
+
+interface TextareaProps {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string
+  rows?: number
+  className?: string
+}
+
+interface BadgeProps {
+  children: React.ReactNode
+  tone?: 'default' | 'success' | 'warn' | 'info'
+  className?: string
+}
+
+interface CardProps {
+  children: React.ReactNode
+  className?: string
+}
+
+/*************************
+ * Minimal UI atoms
+ *************************/
+const Button = ({ children, onClick, variant = 'primary', className = '', disabled, type }: ButtonProps) => {
+  const base = 'inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition active:scale-[.98]'
+  const variants: Record<string, string> = {
+    primary: 'bg-white text-black shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed',
+    ghost: 'bg-transparent text-white/90 hover:text-white border border-white/10 hover:border-white/20',
+    subtle: 'bg-zinc-900/50 border border-zinc-800 text-white/90 hover:bg-zinc-900',
+    danger: 'bg-red-500 text-white hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed',
+  }
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <button type={type} disabled={disabled} onClick={onClick} className={`${base} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  )
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+const Textarea = ({ value, onChange, placeholder, rows = 6, className = '' }: TextareaProps) => (
+  <textarea
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    rows={rows}
+    className={`w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 ${className}`}
+  />
+)
+
+const Badge = ({ children, tone = 'default', className = '' }: BadgeProps) => {
+  const tones: Record<string, string> = {
+    default: 'bg-zinc-800 text-zinc-200',
+    success: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
+    warn: 'bg-amber-500/20 text-amber-300 border border-amber-500/40',
+    info: 'bg-sky-500/20 text-sky-300 border border-sky-500/40',
+  }
+  return <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${tones[tone]} ${className}`}>{children}</span>
+}
+
+const Card = ({ children, className = '' }: CardProps) => (
+  <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 ${className}`}>{children}</div>
+)
+
+/*************************
+ * Layout bits
+ *************************/
+function TopNav({ onDocs }: { onDocs: () => void }) {
+  return (
+    <div className="sticky top-0 z-30 w-full border-b border-zinc-900/80 bg-[#0b0b0c]/80 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black"><Rocket className="h-4 w-4" /></div>
+          <span className="text-sm font-semibold tracking-wide text-white/90">MCP Tool Builder</span>
+          <Badge className="ml-2" tone="info">beta</Badge>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={onDocs}><BookOpen className="h-4 w-4" /> Docs</Button>
+          <a href="#" className="hidden md:inline-flex"><Button variant="ghost"><Github className="h-4 w-4" /> GitHub</Button></a>
+        </div>
+      </div>
     </div>
-  );
+  )
+}
+
+function Footer() {
+  return (
+    <div className="mt-20 border-t border-zinc-900/80 py-8 text-center text-xs text-zinc-500">© {new Date().getFullYear()} MCP Tool Builder • YC-style demo</div>
+  )
+}
+
+/*************************
+ * Landing
+ *************************/
+function Landing({ prompt, setPrompt, onExample, onStart }: { prompt: string; setPrompt: (s: string) => void; onExample: (s: string) => void; onStart: () => void }) {
+  const EX = [
+    'Build an MCP that monitors GitHub issues for a repo and exposes search_issues(owner, repo, query).',
+    'Make a Notion MCP that fetches a page by URL and returns markdown.',
+    'Create a Postgres MCP with list_tables, describe_table, select(query, limit).',
+  ]
+  const canStart = prompt.trim().length > 8
+  return (
+    <section className="mx-auto max-w-6xl px-4">
+      <div className="mx-auto mt-20 max-w-3xl text-center">
+        <Badge tone="success" className="mb-3">FastMCP mock builder</Badge>
+        <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight">Ship <span className="text-white">MCP tools</span> in minutes</h1>
+        <p className="mt-3 text-white/70">Type what you want. We open a planning workspace, ask clarifying questions, stream code + build status via SSE, then let you iterate.</p>
+      </div>
+      <Card className="mx-auto mt-10 max-w-3xl">
+        <form onSubmit={(e) => { e.preventDefault(); if (canStart) onStart() }}>
+          <label className="text-sm text-zinc-400">Your prompt</label>
+          <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={EX[0]} />
+          <div className="mt-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {EX.map((ex, i) => (
+                <button key={i} type="button" onClick={() => onExample(ex)} className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900">Use example {i + 1}</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 self-end">
+              <Button type="submit" disabled={!canStart}>Build an MCP <ChevronRight className="h-4 w-4" /></Button>
+            </div>
+          </div>
+        </form>
+      </Card>
+    </section>
+  )
+}
+
+/*************************
+ * Root component (includes landing + builder for preview)
+ *************************/
+export default function App() {
+  const [prompt, setPrompt] = useState('')
+  const router = useRouter()
+
+  const handleStart = () => {
+    const projectName = suggestName(prompt)
+    router.push(`/build?${new URLSearchParams({ q: prompt, name: projectName })}`)
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-[#0b0b0c] text-white">
+      <TopNav onDocs={() => alert('Docs coming soon')} />
+      <Landing
+        prompt={prompt}
+        setPrompt={setPrompt}
+        onExample={(e) => setPrompt(e)}
+        onStart={handleStart}
+      />
+      <Footer />
+    </div>
+  )
+}
+
+/*************************
+ * Helpers
+ *************************/
+function suggestName(prompt: string) {
+  if (!prompt) return 'Untitled MCP Tool'
+  const noun = prompt.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join('')
+  return noun ? `${noun}MCP` : 'Untitled MCP Tool'
 }
