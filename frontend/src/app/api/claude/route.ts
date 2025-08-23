@@ -11,10 +11,10 @@ export async function POST(req: Request) {
       cwd,
     } = body;
 
-    // Forward request to Claude backend - using the URL from chat_client.py
+    // Forward request to Claude backend - using Cloudflare tunnel
     const backendUrl =
       process.env.CLAUDE_BACKEND_URL ||
-      "https://numeric-sources-vancouver-mass.trycloudflare.com";
+      "https://agricultural-bikes-jan-screenshots.trycloudflare.com";
     const response = await fetch(`${backendUrl}/api/v1/claude/stream`, {
       method: "POST",
       headers: {

@@ -1,7 +1,7 @@
 export async function GET() {
   try {
     // Check Claude backend health
-    const backendUrl = process.env.CLAUDE_BACKEND_URL || 'https://integral-mozilla-ref-db.trycloudflare.com'
+    const backendUrl = process.env.CLAUDE_BACKEND_URL || 'https://agricultural-bikes-jan-screenshots.trycloudflare.com'
     const response = await fetch(`${backendUrl}/api/v1/claude/health`, {
       method: 'GET',
       headers: {

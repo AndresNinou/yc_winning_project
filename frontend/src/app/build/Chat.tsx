@@ -84,8 +84,8 @@ export function Chat({ messages, tools = {} }: ChatProps) {
                 <AvatarFallback
                   className={
                     isUser
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary"
+                      ? "bg-white text-black"
+                      : "bg-blue-500 text-white"
                   }
                 >
                   {isUser ? "U" : "A"}
@@ -103,14 +103,14 @@ export function Chat({ messages, tools = {} }: ChatProps) {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Card className="p-3 bg-card">
+                    <Card className="p-3 bg-white/5 border border-white/10 backdrop-blur-sm">
                       <div className="flex items-center gap-2">
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse delay-75"></div>
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse delay-150"></div>
+                          <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse delay-75"></div>
+                          <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse delay-150"></div>
                         </div>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-white/70">
                           Thinking...
                         </span>
                       </div>
@@ -125,11 +125,13 @@ export function Chat({ messages, tools = {} }: ChatProps) {
                     <Card
                       className={`p-3 ${
                         isUser
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card"
+                          ? "bg-white text-black"
+                          : "bg-white/5 border border-white/10 backdrop-blur-sm"
                       }`}
                     >
-                      <p className="text-md leading-normal whitespace-pre-wrap">
+                      <p className={`text-md leading-normal whitespace-pre-wrap ${
+                        isUser ? "text-black" : "text-white"
+                      }`}>
                         {message.text}
                       </p>
                     </Card>
@@ -140,7 +142,7 @@ export function Chat({ messages, tools = {} }: ChatProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.2, delay: 0.2 }}
-                  className={`flex items-center gap-2 text-xs text-muted-foreground ${
+                  className={`flex items-center gap-2 text-xs text-white/60 ${
                     isUser ? "flex-row-reverse" : "flex-row"
                   }`}
                 >
