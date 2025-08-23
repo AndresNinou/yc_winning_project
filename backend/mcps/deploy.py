@@ -21,7 +21,7 @@ except Exception:
 load_dotenv()
 
 browser_session = BrowserSession(
-    cdp_url="ws://localhost:9222/devtools/browser/acd036ed-d327-46ff-8bef-a148bb44cb4c",
+    cdp_url=os.getenv("CHROME_WS_URL"),
     is_local=False
 )
 
