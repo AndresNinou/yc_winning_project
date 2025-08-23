@@ -30,6 +30,8 @@ class InteractiveChatClient:
         self.console = Console()
         self.conversation_history: List[dict] = []
         self.tools_enabled = True
+        self.conversation_id: Optional[str] = None
+        self.workspace_path: Optional[str] = None
         self.available_tools = [
             "ListDir", "Read", "Write", "Search", 
             "StrReplace", "CreateFile", "ViewFile", "Bash"
@@ -38,13 +40,17 @@ class InteractiveChatClient:
     def print_welcome(self):
         """Print welcome message and instructions."""
         welcome = Panel.fit(
-            "[bold cyan]💬 Claude Code SDK Interactive Chat[/bold cyan]\n\n"
+            "[bold cyan]💬 Claude Code SDK Interactive Chat with Workspace Isolation[/bold cyan]\n\n"
             "[dim]Commands:[/dim]\n"
-            "  [bold]/help[/bold]     - Show this help\n"
-            "  [bold]/tools[/bold]    - Toggle tools on/off\n"
-            "  [bold]/clear[/bold]    - Clear conversation history\n"
-            "  [bold]/history[/bold]  - Show conversation history\n"
-            "  [bold]/quit[/bold]     - Exit chat\n\n"
+            "  [bold]/help[/bold]      - Show this help\n"
+            "  [bold]/tools[/bold]     - Toggle tools on/off\n"
+            "  [bold]/workspace[/bold] - Show current workspace info\n"
+            "  [bold]/files[/bold]     - List files in workspace\n"
+            "  [bold]/clear[/bold]     - Clear conversation history\n"
+            "  [bold]/history[/bold]   - Show conversation history\n"
+            "  [bold]/demo[/bold]      - Run workspace isolation demo\n"
+            "  [bold]/quit[/bold]      - Exit chat\n\n"
+            "[dim]🗂️ Each conversation gets its own isolated workspace![/dim]\n"
             "[dim]Type your message and press Enter to chat with Claude![/dim]",
             border_style="cyan"
         )
@@ -79,6 +85,7 @@ class InteractiveChatClient:
         
         payload = {
             "prompt": message,
+            "conversation_id": self.conversation_id,  # Maintain conversation continuity
             "system_prompt": "You are Claude, a helpful AI assistant. Be conversational and engaging.",
             "max_turns": 300,
             "allowed_tools": self.available_tools if self.tools_enabled else [],
@@ -91,6 +98,7 @@ class InteractiveChatClient:
         response_content = ""
         messages_received = []
         tools_used = []
+        workspace_info = None
         
         # Live display for streaming response
         live_text = Text()
@@ -148,6 +156,14 @@ class InteractiveChatClient:
                                         
                                     elif event_type == "done":
                                         elapsed = time.time() - start_time
+                                        # Capture workspace information if available
+                                        if 'workspace_path' in event_data:
+                                            workspace_info = event_data
+                                            if not self.conversation_id and 'conversation_id' in event_data:
+                                                self.conversation_id = event_data['conversation_id']
+                                            if not self.workspace_path and 'workspace_path' in event_data:
+                                                self.workspace_path = event_data['workspace_path']
+                                        
                                         # Final update with complete response
                                         final_content = Markdown(response_content) if response_content else Text("No response")
                                         live.update(Panel(
@@ -211,12 +227,18 @@ class InteractiveChatClient:
         """Show help information."""
         help_text = Panel(
             "[bold]Available Commands:[/bold]\n\n"
-            "  [bold cyan]/help[/bold cyan]     - Show this help message\n"
-            "  [bold cyan]/tools[/bold cyan]    - Toggle tools on/off (currently: " + 
+            "  [bold cyan]/help[/bold cyan]      - Show this help message\n"
+            "  [bold cyan]/tools[/bold cyan]     - Toggle tools on/off (currently: " + 
             ("ON" if self.tools_enabled else "OFF") + ")\n"
-            "  [bold cyan]/clear[/bold cyan]    - Clear conversation history\n"
-            "  [bold cyan]/history[/bold cyan]  - Show conversation history\n"
-            "  [bold cyan]/quit[/bold cyan]     - Exit the chat client\n\n"
+            "  [bold cyan]/workspace[/bold cyan] - Show current workspace info\n"
+            "  [bold cyan]/files[/bold cyan]     - List files in workspace\n"
+            "  [bold cyan]/demo[/bold cyan]      - Run workspace isolation demo\n"
+            "  [bold cyan]/clear[/bold cyan]     - Clear conversation history\n"
+            "  [bold cyan]/history[/bold cyan]   - Show conversation history\n"
+            "  [bold cyan]/quit[/bold cyan]      - Exit the chat client\n\n"
+            "[bold]🗂️ Workspace Features:[/bold]\n"
+            "Each conversation gets its own isolated workspace where Claude can\n"
+            "create, read, and modify files without affecting other conversations.\n\n"
             "[bold]Available Tools (when enabled):[/bold]\n" +
             ", ".join(self.available_tools) + "\n\n"
             "[dim]Just type your message to chat with Claude![/dim]",
@@ -224,6 +246,89 @@ class InteractiveChatClient:
             border_style="yellow"
         )
         self.console.print(help_text)
+    
+    async def show_workspace_info(self):
+        """Show current workspace information."""
+        if not self.conversation_id or not self.workspace_path:
+            self.console.print("[yellow]⚠️ No active workspace yet. Start a conversation to create one![/yellow]")
+            return
+        
+        try:
+            # Check if workspace path exists
+            import os
+            if os.path.exists(self.workspace_path):
+                file_count = len([f for f in os.listdir(self.workspace_path) if os.path.isfile(os.path.join(self.workspace_path, f))])
+                dir_count = len([d for d in os.listdir(self.workspace_path) if os.path.isdir(os.path.join(self.workspace_path, d))])
+                
+                workspace_info = Panel(
+                    f"[bold]🗂️ Conversation Workspace[/bold]\n\n"
+                    f"[cyan]Conversation ID:[/cyan] {self.conversation_id}\n"
+                    f"[cyan]Workspace Path:[/cyan] {self.workspace_path}\n"
+                    f"[cyan]Files:[/cyan] {file_count}\n"
+                    f"[cyan]Directories:[/cyan] {dir_count}\n\n"
+                    f"[dim]This workspace is isolated from other conversations.[/dim]",
+                    title="🗂️ Workspace Info",
+                    border_style="blue"
+                )
+                self.console.print(workspace_info)
+            else:
+                self.console.print("[red]❌ Workspace path not found![/red]")
+        except Exception as e:
+            self.console.print(f"[red]❌ Error checking workspace: {e}[/red]")
+    
+    async def list_workspace_files(self):
+        """List files in the current workspace."""
+        if not self.workspace_path:
+            self.console.print("[yellow]⚠️ No active workspace yet. Start a conversation to create one![/yellow]")
+            return
+        
+        try:
+            import os
+            if os.path.exists(self.workspace_path):
+                files = []
+                for root, dirs, filenames in os.walk(self.workspace_path):
+                    for filename in filenames:
+                        rel_path = os.path.relpath(os.path.join(root, filename), self.workspace_path)
+                        size = os.path.getsize(os.path.join(root, filename))
+                        files.append(f"  📄 {rel_path} ({size} bytes)")
+                
+                if files:
+                    files_text = "\n".join(files)
+                    file_panel = Panel(
+                        f"[bold]📁 Workspace Files[/bold]\n\n{files_text}",
+                        title="📁 Files",
+                        border_style="green"
+                    )
+                else:
+                    file_panel = Panel(
+                        "[dim]No files in workspace yet.[/dim]",
+                        title="📁 Files",
+                        border_style="green"
+                    )
+                self.console.print(file_panel)
+            else:
+                self.console.print("[red]❌ Workspace path not found![/red]")
+        except Exception as e:
+            self.console.print(f"[red]❌ Error listing files: {e}[/red]")
+    
+    async def run_workspace_demo(self):
+        """Run a demonstration of workspace isolation."""
+        self.console.print("[bold cyan]🧪 Running Workspace Isolation Demo[/bold cyan]")
+        
+        demo_messages = [
+            "Please create a file called 'test.txt' with the content 'Hello from this conversation!'",
+            "List all files in the current directory", 
+            "Create a subdirectory called 'demo' and put a file 'info.md' inside it with some sample content"
+        ]
+        
+        for i, message in enumerate(demo_messages, 1):
+            self.console.print(f"\n[bold]Demo Step {i}:[/bold] {message}")
+            self.console.print("[dim]Press Enter to continue...[/dim]")
+            input()  # Wait for user
+            
+            # Send the demo message
+            await self.send_message_stream(message)
+            self.console.print()
     
     async def run_chat(self):
         """Run the interactive chat loop."""
@@ -270,6 +375,18 @@ class InteractiveChatClient:
                         
                     elif command == "history":
                         self.show_conversation_history()
+                        continue
+                    
+                    elif command == "workspace":
+                        await self.show_workspace_info()
+                        continue
+                    
+                    elif command == "files":
+                        await self.list_workspace_files()
+                        continue
+                    
+                    elif command == "demo":
+                        await self.run_workspace_demo()
                         continue
                         
                     elif command in ["quit", "exit", "q"]:
