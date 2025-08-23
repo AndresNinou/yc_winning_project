@@ -1,10 +1,10 @@
-import React from 'react'
-import { Rocket, Github, BookOpen } from 'lucide-react'
-import { Button } from '../ui/Button'
-import { Badge } from '../ui/Badge'
+import React from "react";
+import { Rocket, Github, BookOpen } from "lucide-react";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 
 interface TopNavProps {
-  onDocs: () => void
+  onDocs: () => void;
 }
 
 export function TopNav({ onDocs }: TopNavProps) {
@@ -15,8 +15,12 @@ export function TopNav({ onDocs }: TopNavProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black">
             <Rocket className="h-4 w-4" />
           </div>
-          <span className="text-sm font-semibold tracking-wide text-white/90">MCP Tool Builder</span>
-          <Badge className="ml-2" tone="info">beta</Badge>
+          <span className="text-sm font-semibold tracking-wide text-white/90">
+            MCP Tool Builder
+          </span>
+          <Badge className="ml-2" tone="info">
+            beta
+          </Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={onDocs}>
@@ -30,5 +34,5 @@ export function TopNav({ onDocs }: TopNavProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
