@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Chat } from "./Chat";
 import { MessageType, Tool } from "./types";
@@ -8,36 +8,6 @@ import { Button, Input } from "@/components/ui";
 import { Textarea } from "@/components/ui/textarea";
 import { sendMessage, parseStreamingResponse } from "./utils";
 import { TopNav } from "@/components/layout";
-
-const sampleMessages: MessageType[] = [
-  {
-    role: "user",
-    text: "Can you help me write a function to calculate fibonacci numbers?",
-    ts: Date.now() - 300000,
-  },
-  {
-    role: "assistant",
-    text: "I'll help you create a fibonacci function. Let me write that code for you.",
-    ts: Date.now() - 240000,
-    tool: "code-task-1",
-  },
-  {
-    role: "assistant",
-    text: "Here's an efficient fibonacci function using memoization:\n\n```javascript\nfunction fibonacci(n, memo = {}) {\n  if (n in memo) return memo[n];\n  if (n <= 2) return 1;\n  memo[n] = fibonacci(n - 1, memo) + fibonacci(n - 2, memo);\n  return memo[n];\n}\n```",
-    ts: Date.now() - 180000,
-  },
-  {
-    role: "user",
-    text: "That's perfect! Can you explain how the memoization works?",
-    ts: Date.now() - 120000,
-  },
-  {
-    role: "assistant",
-    text: "Let me break down how memoization optimizes the fibonacci calculation...",
-    ts: Date.now() - 60000,
-    tool: "reasoning-task-1",
-  },
-];
 
 const sampleTools: Record<string, Tool> = {
   "code-task-1": {
@@ -57,23 +27,23 @@ const sampleTools: Record<string, Tool> = {
 export default function ResultsClient({
   searchParams,
 }: {
-  searchParams: { q?: string; name?: string };
+  searchParams: Promise<{ q?: string; name?: string }>;
 }) {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [fileOutput, setFileOutput] = useState<string[]>(["comeone.ts"]);
 
-  const q = searchParams.q || "";
-  const name = searchParams.name || "";
+  const params = use(searchParams);
+  const q = params.q || "";
+  const name = params.name || "";
 
   useEffect(() => {
     if (q) {
-      const userMessage: MessageType = {
-        role: "user",
-        text: q,
-        ts: Date.now(),
-      };
-      setMessages([userMessage]);
+      (async () => {
+        setInputValue(q);
+        console.log(q);
+        await handleSend();
+      })();
     }
   }, [q]);
 
