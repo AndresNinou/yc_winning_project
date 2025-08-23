@@ -9,7 +9,7 @@ from fastapi import APIRouter
 
 # APIRoute is not used in this module
 # Removed login, users routes as per microservice architecture
-from app.api.routes import pages, private, utils, services, claude
+from app.api.routes import pages, private, utils, services, claude, file_stream
 from app.core.config import settings
 
 # No prefix here since main.py already adds the /api/v1 prefix
@@ -25,6 +25,9 @@ api_router.include_router(services.router)
 
 # Claude API routes
 api_router.include_router(claude.router)
+
+# File streaming routes for real-time file monitoring
+api_router.include_router(file_stream.router)
 
 # Register private router only in local environment
 if settings.ENVIRONMENT == "local":

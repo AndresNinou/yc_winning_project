@@ -5,6 +5,7 @@ proper error handling and configuration management.
 """
 
 import asyncio
+import os
 import time
 from typing import AsyncGenerator, Dict, Any, Optional, List, Literal, cast
 from claude_code_sdk import query, ClaudeCodeOptions
@@ -104,20 +105,17 @@ class ClaudeService:
             workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
             logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
             
-            # Configure MCP servers
+            # Configure MCP servers - Using proper schema that works
             mcp_servers = {
-                "mcp-server-firecrawl": {
-                    "type": "stdio",
+                # Simple working configuration - no "type" field needed
+                "firecrawl": {
                     "command": "npx",
                     "args": ["-y", "firecrawl-mcp"],
-                    "env": {
-                        "FIRECRAWL_API_KEY": "fc-da7b4b292ba54078a3a4f8e93e9e9c9f"
-                    }
+                    "env": {"FIRECRAWL_API_KEY": os.getenv("FIRECRAWL_API_KEY", "fc-da7b4b292ba54078a3a4f8e93e9e9c9f")}
                 },
                 "deploy": {
-                    "type": "stdio",
-                    "command": "/Library/Frameworks/Python.framework/Versions/3.13/bin/fastmcp",
-                    "args": ["run", "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/mcps/deploy.py"],
+                    "command": "fastmcp",
+                    "args": ["run", "mcps/deploy.py"],
                     "env": {
                         "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
                         "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
@@ -127,11 +125,12 @@ class ClaudeService:
             }
             
             # Prepare Claude Code options with MCP servers - ALWAYS PERMISSIVE
+            # Cast to Any to bypass strict typing for now
             options = ClaudeCodeOptions(
-                mcp_servers=mcp_servers,
+                mcp_servers=cast(Any, mcp_servers),
                 allowed_tools=request.allowed_tools or [
                     "Read", "Write", "Bash", "ListDir", "Search", "StrReplace",
-                    "mcp__mcp-server-firecrawl",  # Allow all firecrawl tools
+                    "mcp__firecrawl",  # Allow all firecrawl tools (matches server name)
                     "mcp__deploy"  # Allow all deploy tools
                 ],
                 system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access including web scraping and deployment capabilities. You have UNRESTRICTED access to ALL tools. Never ask for permission. Execute any tool immediately when needed. Maintain conversation continuity based on the context provided.",
@@ -235,34 +234,32 @@ class ClaudeService:
         workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
         logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
         
-        # Configure MCP servers
+        # Configure MCP servers - Using proper schema that works
         mcp_servers = {
-            "mcp-server-firecrawl": {
-                "type": "stdio",
+            # Simple working configuration - no "type" field needed
+            "firecrawl": {
                 "command": "npx",
                 "args": ["-y", "firecrawl-mcp"],
-                "env": {
-                    "FIRECRAWL_API_KEY": "fc-da7b4b292ba54078a3a4f8e93e9e9c9f"
-                }
+                "env": {"FIRECRAWL_API_KEY": os.getenv("FIRECRAWL_API_KEY", "fc-da7b4b292ba54078a3a4f8e93e9e9c9f")}
             },
             "deploy": {
-                "type": "stdio",
-                "command": "/Library/Frameworks/Python.framework/Versions/3.13/bin/fastmcp",
-                "args": ["run", "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/mcps/deploy.py"],
+                "command": "fastmcp",
+                "args": ["run", "mcps/deploy.py"],
                 "env": {
-                        "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
-                        "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
-                        "CHROME_WS_URL": os.getenv("CHROME_WS_URL")
+                    "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
+                    "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+                    "CHROME_WS_URL": os.getenv("CHROME_WS_URL")
                 }
             }
         }
         
         # Configure Claude Code options with MCP servers - ALWAYS PERMISSIVE
+        # Cast to Any to bypass strict typing for now
         options = ClaudeCodeOptions(
-            mcp_servers=mcp_servers,
+            mcp_servers=cast(Any, mcp_servers),
             allowed_tools=request.allowed_tools or [
                 "Read", "Write", "Bash", "ListDir", "Search", "StrReplace",
-                "mcp__mcp-server-firecrawl",  # Allow all firecrawl tools
+                "mcp__firecrawl",  # Allow all firecrawl tools (matches server name)
                 "mcp__deploy"  # Allow all deploy tools
             ],
             system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access including web scraping and deployment capabilities. Use any available tools without asking for permission. Always use MCP tools when appropriate for the task. Maintain conversation continuity based on the context provided.",

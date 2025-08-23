@@ -102,6 +102,11 @@ async def deploy(project_name: Optional[str] = None, folder_path: Optional[str] 
     """
     Deploy a project to Dedalus Labs
     """
+    # Provide defaults if None
+    if folder_path is None:
+        folder_path = "."
+    if project_name is None:
+        project_name = "default-project"
 
     make_repo(folder_path, project_name)
 
