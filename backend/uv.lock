@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.11.*"
 
 [[package]]
@@ -129,14 +129,17 @@ dependencies = [
     { name = "anyio" },
     { name = "bcrypt" },
     { name = "browser-use" },
+    { name = "certifi" },
     { name = "claude-code-sdk" },
     { name = "emails" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastmcp" },
     { name = "greenlet" },
+    { name = "groq" },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "loguru" },
+    { name = "openai" },
     { name = "psycopg", extra = ["binary"] },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
@@ -167,15 +170,18 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.19.0,<1.0.0" },
     { name = "anyio" },
     { name = "bcrypt", specifier = "==4.0.1" },
-    { name = "browser-use", specifier = ">=0.6.1" },
+    { name = "browser-use", extras = ["llm"], specifier = ">=0.6.1" },
+    { name = "certifi", specifier = ">=2025.8.3" },
     { name = "claude-code-sdk" },
     { name = "emails", specifier = ">=0.6,<1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.114.2,<1.0.0" },
     { name = "fastmcp", specifier = ">=2.11.3" },
     { name = "greenlet", specifier = ">=3.1.1" },
+    { name = "groq", specifier = ">=0.31.0" },
     { name = "httpx", specifier = ">=0.25.1,<1.0.0" },
     { name = "jinja2", specifier = ">=3.1.4,<4.0.0" },
     { name = "loguru", specifier = ">=0.7.2,<1.0.0" },
+    { name = "openai", specifier = ">=1.99.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.1.13,<4.0.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pydantic", specifier = ">2.0" },

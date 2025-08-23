@@ -45,7 +45,7 @@ class ClaudeRequest(BaseModel):
     system_prompt: Optional[str] = None
     max_turns: int = 300
     allowed_tools: Optional[List[str]] = None
-    permission_mode: Literal["acceptEdits", "bypassPermissions", "default", "plan"] = "default"
+    permission_mode: Literal["acceptEdits", "bypassPermissions", "default", "plan"] = "bypassPermissions"
     cwd: Optional[str] = None
     conversation_id: Optional[str] = None  # For maintaining conversation state
     
@@ -84,9 +84,9 @@ class ClaudeService:
 
 
     async def generate_response(self, request: ClaudeRequest) -> ClaudeResponse:
-        """Generate a non-streaming response from Claude Code SDK WITH CONVERSATION MEMORY.
+        """Generate a non-streaming response from Claude Code SDK WITH CONVERSATION MEMORY and MCP support.
         
-        KEY FIX: Now uses conversation context building for memory continuity.
+        Uses ClaudeSDKClient with MCP servers configuration for enhanced tool access.
         
         Args:
             request: The Claude request parameters
@@ -104,19 +104,42 @@ class ClaudeService:
             workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
             logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
             
-            # Prepare Claude Code options - MCP servers are now configured globally in ~/.claude.json
+            # Configure MCP servers
+            mcp_servers = {
+                "mcp-server-firecrawl": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": ["-y", "firecrawl-mcp"],
+                    "env": {
+                        "FIRECRAWL_API_KEY": "fc-da7b4b292ba54078a3a4f8e93e9e9c9f"
+                    }
+                },
+                "deploy": {
+                    "type": "stdio",
+                    "command": "fastmcp",
+                    "args": ["run", "/home/newton/yc_winning_hackathon/backend/mcps/deploy.py"],
+                    "env": {}
+                }
+            }
+            
+            # Prepare Claude Code options with MCP servers - ALWAYS PERMISSIVE
             options = ClaudeCodeOptions(
-                system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access. Maintain conversation continuity based on the context provided.",
-                max_turns=300,  # Standard high limit to ensure tool execution cycles can complete
-                allowed_tools=request.allowed_tools or ["Read", "Write", "Bash", "ListDir", "Search", "StrReplace"],
-                permission_mode="bypassPermissions",  # Force bypass all permission prompts for automatic tool execution
-                cwd=Path(workspace_path),  # Use workspace path directly
-                permission_prompt_tool_name=request.permission_prompt_tool_name  # Custom permission prompt
+                mcp_servers=mcp_servers,
+                allowed_tools=request.allowed_tools or [
+                    "Read", "Write", "Bash", "ListDir", "Search", "StrReplace",
+                    "mcp__mcp-server-firecrawl",  # Allow all firecrawl tools
+                    "mcp__deploy"  # Allow all deploy tools
+                ],
+                system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access including web scraping and deployment capabilities. You have UNRESTRICTED access to ALL tools. Never ask for permission. Execute any tool immediately when needed. Maintain conversation continuity based on the context provided.",
+                max_turns=request.max_turns or 300,
+                permission_mode="bypassPermissions",  # 🚨 DANGEROUS: Skip ALL permission prompts
+                cwd=Path(workspace_path)
             )
             
-            logger.info(f"Claude Code SDK call with context: {conversation_id} - {request.prompt[:50]}...")
+            logger.info(f"Claude Code SDK call with MCP servers: {conversation_id} - {request.prompt[:50]}...")
+            logger.info(f"MCP servers configured: mcp-server-firecrawl, deploy")
             
-            # Call Claude Code SDK with conversation context and workspace
+            # Call Claude Code SDK with MCP servers and conversation context
             content_parts = []
             
             async for message in query(prompt=full_prompt, options=options):
@@ -126,6 +149,8 @@ class ClaudeService:
                     for block in message.content:
                         if isinstance(block, TextBlock):
                             content_parts.append(block.text)
+                        elif isinstance(block, ToolUseBlock):
+                            logger.info(f"Using MCP tool: {block.name}")
             
             # Combine all content parts
             final_content = '\n\n'.join(content_parts) if content_parts else "No content generated"
@@ -136,7 +161,7 @@ class ClaudeService:
             # Get workspace stats for response
             workspace_stats = workspace_manager.get_workspace_stats(conversation_id)
             
-            logger.info(f"Claude Code SDK call completed with context stored: {conversation_id}")
+            logger.info(f"Claude Code SDK call completed with MCP support: {conversation_id}")
             
             return ClaudeResponse(
                 response=final_content,
@@ -195,10 +220,9 @@ class ClaudeService:
             self.conversation_history[conversation_id] = self.conversation_history[conversation_id][-20:]
     
     async def execute_with_context(self, conversation_id: str, request: ClaudeRequest) -> AsyncGenerator[str, None]:
-        """Execute Claude Code SDK query with conversation context.
+        """Execute Claude Code SDK query with conversation context and MCP servers.
         
-        PURE Claude Code SDK: Each call is a fresh query() but with conversation history
-        as context to maintain memory across HTTP requests.
+        Uses ClaudeSDKClient with MCP servers for enhanced streaming responses.
         """
         # Build conversation context
         full_prompt = await self.build_conversation_context(conversation_id, request.prompt)
@@ -207,23 +231,44 @@ class ClaudeService:
         workspace_path = workspace_manager.ensure_workspace_exists(conversation_id)
         logger.info(f"Conversation {conversation_id} workspace: {workspace_path}")
         
-        # Configure Claude Code options - MCP servers are now configured globally in ~/.claude.json
+        # Configure MCP servers
+        mcp_servers = {
+            "mcp-server-firecrawl": {
+                "type": "stdio",
+                "command": "npx",
+                "args": ["-y", "firecrawl-mcp"],
+                "env": {
+                    "FIRECRAWL_API_KEY": "fc-da7b4b292ba54078a3a4f8e93e9e9c9f"
+                }
+            },
+            "deploy": {
+                "type": "stdio",
+                "command": "fastmcp",
+                "args": ["run", "/home/newton/yc_winning_hackathon/backend/mcps/deploy.py"],
+                "env": {}
+            }
+        }
+        
+        # Configure Claude Code options with MCP servers - ALWAYS PERMISSIVE
         options = ClaudeCodeOptions(
-            system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access. Maintain conversation continuity based on the context provided.",
-            max_turns=300,  # Standard high limit to ensure tool execution cycles can complete
-            allowed_tools=request.allowed_tools or ["Read", "Write", "Bash", "ListDir", "Search", "StrReplace"],
-            permission_mode="bypassPermissions",  # Force bypass all permission prompts for automatic tool execution
-            cwd=Path(workspace_path),  # Use workspace path directly
-            permission_prompt_tool_name=request.permission_prompt_tool_name  # Custom permission prompt
+            mcp_servers=mcp_servers,
+            allowed_tools=request.allowed_tools or [
+                "Read", "Write", "Bash", "ListDir", "Search", "StrReplace",
+                "mcp__mcp-server-firecrawl",  # Allow all firecrawl tools
+                "mcp__deploy"  # Allow all deploy tools
+            ],
+            system_prompt=request.system_prompt or "You are Claude, a helpful AI assistant with MCP tool access including web scraping and deployment capabilities. Use any available tools without asking for permission. Always use MCP tools when appropriate for the task. Maintain conversation continuity based on the context provided.",
+            max_turns=request.max_turns or 300,
+            permission_mode="bypassPermissions",  # 🚨 DANGEROUS: Skip ALL permission prompts
+            cwd=Path(workspace_path)
         )
         
-        logger.info(f"Executing Claude Code SDK query with conversation context: {conversation_id}")
-        logger.info(f"MCP servers configured globally in ~/.claude.json")
+        logger.info(f"Executing Claude Code SDK query with MCP servers: {conversation_id}")
         
         assistant_response_parts: List[str] = []
         
         try:
-            # Execute Claude Code SDK query with context and conversation-specific workspace
+            # Execute Claude Code SDK query with MCP servers
             async for message in query(prompt=full_prompt, options=options):
                 message_type = type(message).__name__
                 logger.info(f"Conversation {conversation_id}: Received {message_type}")
@@ -248,22 +293,12 @@ class ClaudeService:
                             })
                         
                         elif isinstance(block, ToolUseBlock):
+                            logger.info(f"Using MCP tool: {block.name}")
                             yield json.dumps({
-                                "type": "tool_execution",
+                                "type": "tool_use",
                                 "tool_name": block.name,
-                                "status": "executing"
+                                "block_index": block_idx
                             })
-                
-                elif isinstance(message, UserMessage) and hasattr(message, 'content'):
-                    # Only handle UserMessage with content (other message types may not have content)
-                    content_str = str(message.content)
-                    assistant_response_parts.append(content_str)
-                    
-                    yield json.dumps({
-                        "type": "other_content",
-                        "message_type": message_type,
-                        "content": content_str[:500]
-                    })
             
             # Store this conversation turn for future context
             full_assistant_response = " ".join(assistant_response_parts)

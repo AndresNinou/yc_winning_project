@@ -17,17 +17,20 @@ dependencies = [
     "bcrypt==4.0.1",
     "pydantic-settings<3.0.0,>=2.2.1",
     "sentry-sdk[fastapi]<2.0.0,>=1.40.6",
-    "python-dotenv (>=1.1.0,<2.0.0)",
+    "python-dotenv>=1.1.0,<2.0.0",
     # Structured logging with Loguru
     "loguru<1.0.0,>=0.7.2",
     "psycopg2-binary>=2.9.10",
     "pyrefly>=0.22.1",
     "greenlet>=3.1.1",
-    "browser-use>=0.6.1",
+    "browser-use[llm]>=0.6.1",
     "claude-code-sdk",
     "anyio",
     "rich>=13.0.0",
     "fastmcp>=2.11.3",
+    "certifi>=2025.8.3",
+    "groq>=0.31.0",
+    "openai>=1.99.2",
 ]
 
 [tool.uv]

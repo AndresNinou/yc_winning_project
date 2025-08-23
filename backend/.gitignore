@@ -15,4 +15,4 @@ htmlcov
 *.db
 *.sqlite
 *.sqlite3
-.mcp.json
+#.mcp.json
