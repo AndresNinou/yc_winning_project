@@ -82,8 +82,8 @@ async def stream_chat_with_claude(request: ClaudeRequest):
                             sse_data = f"data: {json.dumps(progress_data)}\n\n"
                             yield sse_data
                             
-                        elif chunk_type == "text_block":
-                            # Pure Claude Code SDK - complete text blocks as received
+                        elif chunk_type == "content":
+                            # Content events from Claude service
                             content_data = {
                                 'type': 'content',
                                 'content': chunk_data.get('content', ''),
@@ -92,22 +92,35 @@ async def stream_chat_with_claude(request: ClaudeRequest):
                             sse_data = f"data: {json.dumps(content_data)}\n\n"
                             yield sse_data
                             
-                        elif chunk_type == "tool_execution":
-                            # Tool execution info
+                        elif chunk_type == "tool_use":
+                            # Regular tool execution info
                             tool_data = {
                                 'type': 'tool_use',
                                 'tool_name': chunk_data.get('tool_name'),
-                                'tool_input': chunk_data.get('tool_input', ''),
-                                'status': chunk_data.get('status', 'executing')
+                                'block_index': chunk_data.get('block_index', 0)
                             }
                             sse_data = f"data: {json.dumps(tool_data)}\n\n"
                             yield sse_data
                             
-                        elif chunk_type == "stream_complete":
+                        elif chunk_type == "mcp_tool_use":
+                            # MCP tool execution info
+                            mcp_tool_data = {
+                                'type': 'mcp_tool_use',
+                                'tool_name': chunk_data.get('tool_name'),
+                                'server_name': chunk_data.get('server_name'),
+                                'tool_function': chunk_data.get('tool_function'),
+                                'block_index': chunk_data.get('block_index', 0)
+                            }
+                            sse_data = f"data: {json.dumps(mcp_tool_data)}\n\n"
+                            yield sse_data
+                            
+                        elif chunk_type == "done":
                             # Stream completion
                             complete_data = {
                                 'type': 'complete',
-                                'final_content': chunk_data.get('total_content', '')
+                                'final_content': chunk_data.get('response', ''),
+                                'conversation_id': chunk_data.get('conversation_id'),
+                                'tools_used': chunk_data.get('tools_used', 0)
                             }
                             sse_data = f"data: {json.dumps(complete_data)}\n\n"
                             yield sse_data
