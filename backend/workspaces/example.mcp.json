@@ -32,9 +32,13 @@
       }
     },
     "deploy-server": {
-      "type": "stdio", 
+      "type": "stdio",
       "command": "uv",
-      "args": ["run", "python", "/home/newton/yc_winning_hackathon/backend/mcps/deploy.py"],
+      "args": [
+        "run",
+        "python",
+        "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/mcps/deploy.py"
+      ],
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "CHROME_WS_URL": "${CHROME_WS_URL}"

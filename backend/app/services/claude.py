@@ -116,9 +116,13 @@ class ClaudeService:
                 },
                 "deploy": {
                     "type": "stdio",
-                    "command": "fastmcp",
-                    "args": ["run", "/home/newton/yc_winning_hackathon/backend/mcps/deploy.py"],
-                    "env": {}
+                    "command": "/Library/Frameworks/Python.framework/Versions/3.13/bin/fastmcp",
+                    "args": ["run", "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/mcps/deploy.py"],
+                    "env": {
+                        "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
+                        "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+                        "CHROME_WS_URL": os.getenv("CHROME_WS_URL")
+                    }
                 }
             }
             
@@ -243,9 +247,13 @@ class ClaudeService:
             },
             "deploy": {
                 "type": "stdio",
-                "command": "fastmcp",
-                "args": ["run", "/home/newton/yc_winning_hackathon/backend/mcps/deploy.py"],
-                "env": {}
+                "command": "/Library/Frameworks/Python.framework/Versions/3.13/bin/fastmcp",
+                "args": ["run", "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/mcps/deploy.py"],
+                "env": {
+                        "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
+                        "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+                        "CHROME_WS_URL": os.getenv("CHROME_WS_URL")
+                }
             }
         }
         

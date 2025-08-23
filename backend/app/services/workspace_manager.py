@@ -19,7 +19,7 @@ from loguru import logger
 class ConversationWorkspaceManager:
     """Manages isolated workspaces for Claude Code conversations."""
     
-    def __init__(self, base_workspace_dir: str = "/home/newton/yc_winning_hackathon/backend/workspaces"):
+    def __init__(self, base_workspace_dir: str = "/Users/knuceles/Documents/GitHub/yc_winning_project/backend/workspaces"):
         """
         Initialize the workspace manager.
         

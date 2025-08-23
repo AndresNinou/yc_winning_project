@@ -19,12 +19,13 @@ from rich.live import Live
 from rich.prompt import Prompt
 from rich.markdown import Markdown
 from rich import box
+import os
 
 
 class InteractiveChatClient:
     """Interactive chat client for Claude Code SDK conversations."""
     
-    def __init__(self, base_url: str = "https://integral-mozilla-ref-db.trycloudflare.com"):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.api_base = f"{base_url}/api/v1/claude"
         self.console = Console()
