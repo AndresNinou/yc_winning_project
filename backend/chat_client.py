@@ -43,7 +43,7 @@ class InteractiveChatClient:
             "[bold cyan]💬 Claude Code SDK Interactive Chat with Workspace Isolation[/bold cyan]\n\n"
             "[dim]Commands:[/dim]\n"
             "  [bold]/help[/bold]      - Show this help\n"
-            "  [bold]/tools[/bold]     - Toggle tools on/off\n"
+            "  [bold]/tools[/bold]     - Show available tools with parameters\n"
             "  [bold]/workspace[/bold] - Show current workspace info\n"
             "  [bold]/files[/bold]     - List files in workspace\n"
             "  [bold]/clear[/bold]     - Clear conversation history\n"
@@ -228,8 +228,7 @@ class InteractiveChatClient:
         help_text = Panel(
             "[bold]Available Commands:[/bold]\n\n"
             "  [bold cyan]/help[/bold cyan]      - Show this help message\n"
-            "  [bold cyan]/tools[/bold cyan]     - Toggle tools on/off (currently: " + 
-            ("ON" if self.tools_enabled else "OFF") + ")\n"
+            "  [bold cyan]/tools[/bold cyan]     - Show available tools with parameters\n"
             "  [bold cyan]/workspace[/bold cyan] - Show current workspace info\n"
             "  [bold cyan]/files[/bold cyan]     - List files in workspace\n"
             "  [bold cyan]/demo[/bold cyan]      - Run workspace isolation demo\n"
@@ -246,6 +245,93 @@ class InteractiveChatClient:
             border_style="yellow"
         )
         self.console.print(help_text)
+    
+    async def show_available_tools(self):
+        """Show detailed information about available Claude Code SDK tools."""
+        tools_info = {
+            "Read": {
+                "description": "Read contents of files",
+                "parameters": {
+                    "path": "str - Path to the file to read",
+                    "start_line": "int - Optional starting line number", 
+                    "end_line": "int - Optional ending line number"
+                },
+                "example": "Read the file 'config.py' from lines 10 to 20"
+            },
+            "Write": {
+                "description": "Create or write content to files",
+                "parameters": {
+                    "path": "str - Path where to write the file",
+                    "content": "str - Content to write to the file"
+                },
+                "example": "Write 'Hello World!' to a file called 'greeting.txt'"
+            },
+            "Bash": {
+                "description": "Execute shell commands in the workspace",
+                "parameters": {
+                    "command": "str - Shell command to execute",
+                    "timeout": "int - Optional timeout in seconds"
+                },
+                "example": "Run 'ls -la' to list directory contents"
+            },
+            "ListDir": {
+                "description": "List contents of directories", 
+                "parameters": {
+                    "path": "str - Directory path to list",
+                    "recursive": "bool - Whether to list recursively"
+                },
+                "example": "List all files in the current directory"
+            },
+            "Search": {
+                "description": "Search for text patterns in files",
+                "parameters": {
+                    "pattern": "str - Text pattern to search for",
+                    "path": "str - Path to search in (file or directory)",
+                    "case_sensitive": "bool - Whether search is case sensitive"
+                },
+                "example": "Search for 'function' in all Python files"
+            },
+            "StrReplace": {
+                "description": "Replace text in files",
+                "parameters": {
+                    "path": "str - Path to the file",
+                    "old_str": "str - Text to replace",
+                    "new_str": "str - Replacement text"
+                },
+                "example": "Replace 'old_value' with 'new_value' in config.json"
+            }
+        }
+        
+        tools_display = "[bold]🛠️ Available Claude Code SDK Tools[/bold]\n\n"
+        
+        for tool_name, tool_info in tools_info.items():
+            # Tool header
+            tools_display += f"[bold cyan]{tool_name}[/bold cyan]\n"
+            tools_display += f"  [dim]{tool_info['description']}[/dim]\n"
+            
+            # Parameters
+            tools_display += "  [yellow]Parameters:[/yellow]\n"
+            for param_name, param_desc in tool_info['parameters'].items():
+                tools_display += f"    • [green]{param_name}[/green]: {param_desc}\n"
+            
+            # Example
+            tools_display += f"  [yellow]Example:[/yellow] [dim italic]{tool_info['example']}[/dim italic]\n\n"
+        
+        # Status and current configuration
+        tools_display += f"[bold]🔧 Current Configuration:[/bold]\n"
+        tools_display += f"  Status: [green]{'Enabled' if self.tools_enabled else 'Disabled'}[/green]\n"
+        tools_display += f"  Workspace: [cyan]{self.workspace_path or 'Not created yet'}[/cyan]\n"
+        tools_display += f"  Conversation: [cyan]{self.conversation_id or 'New conversation'}[/cyan]\n\n"
+        tools_display += "[dim]💡 Tools operate in isolated conversation workspaces for complete separation.[/dim]"
+        
+        tool_panel = Panel(
+            tools_display,
+            title="🛠️ Claude Code SDK Tools",
+            border_style="cyan",
+            expand=False
+        )
+        
+        self.console.print(tool_panel)
     
     async def show_workspace_info(self):
         """Show current workspace information."""
@@ -363,9 +449,7 @@ class InteractiveChatClient:
                         continue
                         
                     elif command == "tools":
-                        self.tools_enabled = not self.tools_enabled
-                        status = "enabled" if self.tools_enabled else "disabled"
-                        self.console.print(f"🛠️ Tools {status}")
+                        await self.show_available_tools()
                         continue
                         
                     elif command == "clear":
