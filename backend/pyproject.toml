@@ -27,6 +27,7 @@ dependencies = [
     "claude-code-sdk",
     "anyio",
     "rich>=13.0.0",
+    "fastmcp>=2.11.3",
 ]
 
 [tool.uv]
