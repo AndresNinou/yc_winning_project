@@ -6,7 +6,7 @@ proper error handling and configuration management.
 
 import asyncio
 import time
-from typing import AsyncGenerator, Dict, Any, Optional, List, Literal
+from typing import AsyncGenerator, Dict, Any, Optional, List, Literal, cast
 from claude_code_sdk import query, ClaudeCodeOptions
 from claude_code_sdk.types import (
     AssistantMessage, TextBlock, ToolUseBlock, ToolResultBlock, 
@@ -196,7 +196,7 @@ class ClaudeService:
         
         logger.info(f"Executing Claude Code SDK query with conversation context: {conversation_id}")
         
-        assistant_response_parts = []
+        assistant_response_parts: List[str] = []
         
         try:
             # Execute Claude Code SDK query with context

@@ -11,6 +11,7 @@ Uses SQLModel metadata to create tables directly instead of Alembic migrations.
 """
 
 from contextlib import asynccontextmanager
+from typing import cast, Any
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
@@ -84,7 +85,7 @@ def get_application() -> FastAPI:
     # Set all CORS enabled origins
     if settings.all_cors_origins:
         app.add_middleware(
-            CORSMiddleware,
+            cast(Any, CORSMiddleware),
             allow_origins=settings.all_cors_origins,
             allow_credentials=True,
             allow_methods=["*"],

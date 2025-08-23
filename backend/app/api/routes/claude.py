@@ -74,47 +74,52 @@ async def stream_chat_with_claude(request: ClaudeRequest):
                         
                         if chunk_type == "message_info":
                             # Message progression info
-                            sse_data = f"data: {json.dumps({
+                            progress_data = {
                                 'type': 'progress',
                                 'message_type': chunk_data.get('message_type'),
                                 'timestamp': chunk_data.get('timestamp', 0)
-                            })}\n\n"
+                            }
+                            sse_data = f"data: {json.dumps(progress_data)}\n\n"
                             yield sse_data
                             
                         elif chunk_type == "text_block":
                             # Pure Claude Code SDK - complete text blocks as received
-                            sse_data = f"data: {json.dumps({
+                            content_data = {
                                 'type': 'content',
                                 'content': chunk_data.get('content', ''),
                                 'block_index': chunk_data.get('block_index', 0)
-                            })}\n\n"
+                            }
+                            sse_data = f"data: {json.dumps(content_data)}\n\n"
                             yield sse_data
                             
                         elif chunk_type == "tool_execution":
                             # Tool execution info
-                            sse_data = f"data: {json.dumps({
+                            tool_data = {
                                 'type': 'tool_use',
                                 'tool_name': chunk_data.get('tool_name'),
                                 'tool_input': chunk_data.get('tool_input', ''),
                                 'status': chunk_data.get('status', 'executing')
-                            })}\n\n"
+                            }
+                            sse_data = f"data: {json.dumps(tool_data)}\n\n"
                             yield sse_data
                             
                         elif chunk_type == "stream_complete":
                             # Stream completion
-                            sse_data = f"data: {json.dumps({
+                            complete_data = {
                                 'type': 'complete',
                                 'final_content': chunk_data.get('total_content', '')
-                            })}\n\n"
+                            }
+                            sse_data = f"data: {json.dumps(complete_data)}\n\n"
                             yield sse_data
                             
                         elif chunk_data.get("type") in ["cli_error", "process_error", "api_error"]:
                             # Error handling
-                            sse_data = f"data: {json.dumps({
+                            error_data = {
                                 'type': 'error',
                                 'error': chunk_data.get('error', 'Unknown error'),
                                 'error_type': chunk_data.get('type')
-                            })}\n\n"
+                            }
+                            sse_data = f"data: {json.dumps(error_data)}\n\n"
                             yield sse_data
                             return
                             
