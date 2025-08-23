@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.11.*"
 
 [[package]]
@@ -126,8 +126,10 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
+    { name = "anyio" },
     { name = "bcrypt" },
     { name = "browser-use" },
+    { name = "claude-code-sdk" },
     { name = "emails" },
     { name = "fastapi", extra = ["standard"] },
     { name = "greenlet" },
@@ -141,6 +143,7 @@ dependencies = [
     { name = "pyrefly" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
+    { name = "rich" },
     { name = "sentry-sdk", extra = ["fastapi"] },
     { name = "sqlmodel" },
     { name = "tenacity" },
@@ -161,8 +164,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.19.0,<1.0.0" },
+    { name = "anyio" },
     { name = "bcrypt", specifier = "==4.0.1" },
     { name = "browser-use", specifier = ">=0.6.1" },
+    { name = "claude-code-sdk" },
     { name = "emails", specifier = ">=0.6,<1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.114.2,<1.0.0" },
     { name = "greenlet", specifier = ">=3.1.1" },
@@ -176,6 +181,7 @@ requires-dist = [
     { name = "pyrefly", specifier = ">=0.22.1" },
     { name = "python-dotenv", specifier = ">=1.1.0,<2.0.0" },
     { name = "python-multipart", specifier = ">=0.0.7,<1.0.0" },
+    { name = "rich", specifier = ">=13.0.0" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=1.40.6,<2.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.21,<1.0.0" },
     { name = "tenacity", specifier = ">=8.2.3,<9.0.0" },
@@ -403,6 +409,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/64/d4/9eb4ff2c167edbbf08cdd28e19078bf195762e9bd63371689cab5ecd3d0d/charset_normalizer-3.4.3-cp311-cp311-win32.whl", hash = "sha256:6cf8fd4c04756b6b60146d98cd8a77d0cdae0e1ca20329da2ac85eed779b6849", size = 99616, upload-time = "2025-08-09T07:56:05.658Z" },
     { url = "https://files.pythonhosted.org/packages/f4/9c/996a4a028222e7761a96634d1820de8a744ff4327a00ada9c8942033089b/charset_normalizer-3.4.3-cp311-cp311-win_amd64.whl", hash = "sha256:31a9a6f775f9bcd865d88ee350f0ffb0e25936a7f930ca98995c05abf1faf21c", size = 107108, upload-time = "2025-08-09T07:56:07.176Z" },
     { url = "https://files.pythonhosted.org/packages/8a/1f/f041989e93b001bc4e44bb1669ccdcf54d3f00e628229a85b08d330615c5/charset_normalizer-3.4.3-py3-none-any.whl", hash = "sha256:ce571ab16d890d23b5c278547ba694193a45011ff86a9162a71307ed9f86759a", size = 53175, upload-time = "2025-08-09T07:57:26.864Z" },
+]
+
+[[package]]
+name = "claude-code-sdk"
+version = "0.0.20"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/c3/d40cf8bab3a5c75051914094990cff0a36ad13e4a2fe9ed85dbb4233a225/claude_code_sdk-0.0.20.tar.gz", hash = "sha256:5f9872f105563db8975de48ddc88c948d9c5e1244addca02241d6fcd2a47b3d6", size = 24329, upload-time = "2025-08-11T15:21:26.009Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/1d/fa06e77d4e7440d2f4998d8375eedc7dbb740d7e552d63f23c8b23661c91/claude_code_sdk-0.0.20-py3-none-any.whl", hash = "sha256:6183771f9663a47e9bda3c4f03e5619f2e41f9272a9e9bd9775bf2537177e4a0", size = 17575, upload-time = "2025-08-11T15:21:24.904Z" },
 ]
 
 [[package]]

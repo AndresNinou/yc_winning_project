@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     # Monitoring
     SENTRY_DSN: HttpUrl | None = None
 
+    # Anthropic/Claude API settings
+    ANTHOPIC_API_KEY: str | None = None
+
     # Database settings - use DATABASE_URL for external database connection managed by Next.js/Prisma
     # Required in production, but has a placeholder for tests
     DATABASE_URL: str | None = None
