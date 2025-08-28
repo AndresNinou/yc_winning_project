@@ -1,4 +1,4 @@
-# YC Hack MCP - AI-Powered MCP Tool Builder
+# WINGMAN - AI AGENT FOR BUILDING MCP TOOLS
 
 🥈 **Winner: Y Combinator's First Overnight Hackathon - Silver Medal**  
 🏆 **Developer Tools and AI Agents Track**  
@@ -7,6 +7,14 @@
 An Agentic AI Platform for building Model Context Protocol (MCP) tools with AI assistance from Claude. This project combines a FastAPI backend with a Next.js frontend to create an interactive development environment for MCP tool creation.
 
 Features automated deployment to **Dedaluslabs.ai** - the MCP marketplace - using Browser-Use automation.
+
+## 👥 Team Wingman
+
+- [Andres Niño](https://www.linkedin.com/in/andres-ni%C3%B1o-593722187/)
+- [Shubham Nair](https://www.linkedin.com/in/nair-shubh/)
+- [Jaehoon Son](https://www.linkedin.com/in/jaehoon-son/)
+- [James Lin](https://www.linkedin.com/in/linj3/)
+
 
 ## 🛠️ Built With Award-Winning Tools
 
